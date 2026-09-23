@@ -5,10 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Suivi DeepSeek — consommation &amp; heures creuses</title>
+    <meta
+      name="description"
+      content="Consommation de l'API DeepSeek : heures pleines / creuses, coût par application et demandes en attente d'heures creuses."
+    />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%E2%8F%B0%3C/text%3E%3C/svg%3E"
     />
+    <!-- Application installable (PWA) : manifeste, icônes, service worker. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1220" />
+    <link rel="apple-touch-icon" href="icone-192.png" />
+    <link rel="apple-touch-startup-image" href="icone-512.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Suivi DeepSeek" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -24,6 +37,9 @@
         <a id="lien-recharge" class="bouton bouton-principal" href="https://platform.deepseek.com/top_up" target="_blank" rel="noopener">
           Recharger le compte API
         </a>
+        <button id="bouton-installer" class="bouton" type="button" hidden>
+          Installer l'application
+        </button>
       </div>
     </header>
 

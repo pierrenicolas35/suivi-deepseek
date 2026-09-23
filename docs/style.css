@@ -48,6 +48,7 @@ a { color: var(--accent); }
   border: 1px solid var(--bord);
   background: var(--panneau-2);
   color: var(--texte);
+  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;

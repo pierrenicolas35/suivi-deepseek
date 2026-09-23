@@ -6,6 +6,9 @@ creuses.
 
 Tableau de bord : <https://pierrenicolas35.github.io/suivi-deepseek/>
 
+Installation : `./installer.sh` pour les commandes sur une machine (§ 2), et
+§ 10 pour installer l'application sur un téléphone ou un ordinateur.
+
 ## 1. Heures pleines, heures creuses
 
 Règle officielle DeepSeek (<https://api-docs.deepseek.com/quick_start/pricing>) :
@@ -24,6 +27,10 @@ La grille appliquée aux coûts de cette application est celle de
 `deepseek-v4-pro`.
 
 ## 2. Commandes
+
+`./installer.sh` crée les liens dans `~/.local/bin` et vérifie que tout répond
+(`--avec-hints` ajoute en plus la règle globale de Goose, `--desinstaller` retire
+les liens sans toucher aux données).
 
 | Commande | Rôle |
 |---|---|
@@ -55,7 +62,8 @@ dossiers de travail.
 ## 4. Tableau de bord
 
 `docs/` est publié sur GitHub Pages par `.github/workflows/pages.yml`. La page
-est statique : elle lit `docs/data/suivi.json`.
+est statique : elle lit `docs/data/suivi.json`. C'est aussi une **application
+installable** (manifeste + service worker, voir § 10).
 
 - **Bandeau temps réel** : heures pleines/creuses calculées dans le navigateur,
   avec compte à rebours jusqu'à la bascule.
@@ -95,17 +103,22 @@ Pour ajouter un projet : compléter les listes `profils` et `apps`, puis relance
 - La page est publique et non indexable (`robots.txt`, `noindex`). Les coûts
   affichés sont sensibles mais sans secret : si tu préfères, rends le dépôt privé
   (GitHub Pages sur dépôt privé nécessite un compte payant).
+- Une fois l'application installée (§ 10), le navigateur conserve sur l'appareil
+  une copie locale de la page et des derniers agrégats publiés, pour l'afficher
+  hors ligne. Elle est signalée « hors ligne : dernière copie connue » et se met
+  à jour dès la prochaine connexion. La désinstaller efface cette copie.
 
 ## 7. Tests
 
 ```sh
-python3 -m pytest tests -q      # 67 tests
+python3 -m pytest tests -q      # 79 tests
 ```
 
 Ils couvrent les bornes des fenêtres tarifaires (week-ends, jours fériés,
 bascule), la grille de prix (remise creuse = moitié de la pleine, cache borné),
-l'attribution des sessions, la file d'attente et la collecte sur une base
-factice.
+l'attribution des sessions, la file d'attente, la collecte sur une base factice,
+et l'installation (liens des commandes, manifeste et icônes de l'application
+installable).
 
 ## 8. Limites connues
 
@@ -122,11 +135,42 @@ factice.
 
 ```
 suivi-deepseek/
+├── installer.sh       installation des commandes (et de la règle globale de Goose)
 ├── config/            tarifs.json, profils.json, jours_feries_cn.json
 ├── outils/            horaires.py, tarifs.py, sessions.py, differe.py, collecter.py, solde.py
 ├── bin/               deepseek-horaires, deepseek-differe, deepseek-collecter
 ├── data/              en-attente.json (file d'attente locale)
 ├── docs/              index.html, style.css, app.js, data/suivi.json (publié)
-├── tests/             67 tests pytest
+│                      manifest.webmanifest, sw.js, icone-*.png (application installable)
+├── tests/             tests pytest
 └── .github/workflows/ pages.yml (tests, contrôle des secrets, déploiement Pages)
 ```
+
+## 10. Installer l'application
+
+Le tableau de bord est une application web installable (PWA) : une fois
+installée, elle s'ouvre en plein écran depuis son icône, sans barre d'adresse, et
+reste consultable hors ligne (dernière copie connue, clairement signalée).
+
+**Ordinateur (Chrome, Edge, Brave)** — sur
+<https://pierrenicolas35.github.io/suivi-deepseek/> :
+
+1. cliquer sur l'icône d'installation dans la barre d'adresse, ou passer par le
+   menu ⋮ → *Installer Suivi DeepSeek* (Cast, enregistrer et partager →
+   *Installer la page en tant qu'application*) ;
+2. valider : l'application apparaît dans les applications du système.
+
+Un bouton **« Installer l'application »** apparaît aussi dans l'en-tête de la
+page dès que le navigateur le permet.
+
+**iPhone / iPad (Safari)** : bouton *Partager* → *Sur l'écran d'accueil* →
+*Ajouter*. (Safari n'autorise pas l'installation en un clic : c'est le bouton
+« Installer sur l'écran d'accueil » de la page qui rappelle la marche à suivre.)
+
+**Android (Chrome)** : menu ⋮ → *Ajouter à l'écran d'accueil* /
+*Installer l'application*.
+
+Pour retirer l'application : la désinstaller depuis l'écran d'accueil ou les
+applications du système, ou la retirer de `chrome://apps`. Les statistiques
+publiées proviennent toujours de `deepseek-collecter` exécuté sur la machine :
+l'application installée n'est qu'un afficheur.

@@ -13,6 +13,7 @@ const LARGEUR = 900;
 
 let donnees = null;
 let joursFeries = new Set();
+let copieHorsLigne = false;
 
 /* ------------------------------------------------------------------ formats */
 
@@ -618,21 +619,116 @@ function rendreTout() {
   document.getElementById("pied-source").textContent =
     `Grille tarifaire relevée le ${donnees.grille_tarifaire.releve_le} (${donnees.grille_tarifaire.unite}, ` +
     `${donnees.grille_tarifaire.devise}) · données collectées le ${fmtDateHeure(donnees.genere_le)} · ` +
-    `source : ${donnees.source_donnees}`;
+    `source : ${donnees.source_donnees}` +
+    (copieHorsLigne || navigator.onLine === false ? " · hors ligne : dernière copie connue" : "");
+}
+
+/* -------------------------------------------------------------- installation */
+
+let inviteInstallation = null;
+
+function applicationInstallee() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+    window.navigator.standalone === true
+  );
+}
+
+function afficherBoutonInstallation(texte) {
+  const bouton = document.getElementById("bouton-installer");
+  if (!bouton || applicationInstallee()) return;
+  if (texte) bouton.textContent = texte;
+  bouton.hidden = false;
+}
+
+function lancerInstallation() {
+  const bouton = document.getElementById("bouton-installer");
+  if (inviteInstallation) {
+    inviteInstallation.prompt();
+    inviteInstallation.userChoice.then(() => {
+      inviteInstallation = null;
+      if (bouton) bouton.hidden = true;
+    });
+    return;
+  }
+  // Safari / iOS : pas d'invite programmable, on donne la marche à suivre.
+  window.alert(
+    "Pour installer l'application :\n\n" +
+      "• iPhone / iPad : bouton Partager, puis « Sur l'écran d'accueil ».\n" +
+      "• Chrome / Edge (ordinateur) : menu ⋮, puis « Installer Suivi DeepSeek »."
+  );
+}
+
+function preparerInstallation() {
+  const bouton = document.getElementById("bouton-installer");
+  if (bouton) bouton.addEventListener("click", lancerInstallation);
+
+  window.addEventListener("beforeinstallprompt", (evenement) => {
+    evenement.preventDefault();
+    inviteInstallation = evenement;
+    afficherBoutonInstallation("Installer l'application");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    inviteInstallation = null;
+    if (bouton) bouton.hidden = true;
+  });
+
+  // iOS n'émet pas « beforeinstallprompt » : on propose la marche à suivre.
+  const ua = navigator.userAgent || "";
+  const ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  if (ios) afficherBoutonInstallation("Installer sur l'écran d'accueil");
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {
+      /* hors ligne indisponible : la page reste utilisable en ligne */
+    });
+  }
+}
+
+async function memoriserDonnees(reponse) {
+  if (!("caches" in window)) return;
+  try {
+    const cache = await caches.open("suivi-deepseek-donnees-v1");
+    await cache.put("data/suivi.json", reponse.clone());
+  } catch (erreur) {
+    /* stockage indisponible : la page reste utilisable en ligne */
+  }
+}
+
+async function donneesEnCache() {
+  if (!("caches" in window)) return null;
+  try {
+    const reponse = await caches.match("data/suivi.json");
+    return reponse ? await reponse.json() : null;
+  } catch (erreur) {
+    return null;
+  }
 }
 
 async function initialiser() {
   try {
     const reponse = await fetch("data/suivi.json", { cache: "no-store" });
     if (!reponse.ok) throw new Error(`HTTP ${reponse.status}`);
+    await memoriserDonnees(reponse);
     donnees = await reponse.json();
   } catch (erreur) {
-    const bandeau = document.getElementById("bandeau");
-    bandeau.className = "bandeau erreur";
-    bandeau.innerHTML =
-      `Données indisponibles (${erreur.message}). Lancez <code>python3 outils/collecter.py</code> ` +
-      "à la racine du projet, puis rechargez la page.";
-    return;
+    // Application installée et consultée hors ligne : on réaffiche la
+    // dernière copie connue, en le signalant explicitement dans le pied de page.
+    donnees = await donneesEnCache();
+    if (!donnees) {
+      const bandeau = document.getElementById("bandeau");
+      bandeau.className = "bandeau erreur";
+      bandeau.innerHTML =
+        navigator.onLine
+          ? `Données indisponibles (${erreur.message}). Lancez <code>python3 outils/collecter.py</code> ` +
+            "à la racine du projet, puis rechargez la page."
+          : "Hors ligne : aucune copie des statistiques n'est encore enregistrée sur cet appareil. " +
+            "Reconnectez-vous une fois pour l'activer.";
+      return;
+    }
+    copieHorsLigne = true;
   }
 
   joursFeries = new Set(donnees.regle_horaires.jours_feries_chinois || []);
@@ -642,4 +738,7 @@ async function initialiser() {
   setInterval(rendreTout, 60000);
 }
 
-document.addEventListener("DOMContentLoaded", initialiser);
+document.addEventListener("DOMContentLoaded", () => {
+  preparerInstallation();
+  initialiser();
+});
