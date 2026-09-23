@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Suivi DeepSeek — consommation &amp; heures creuses</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="entete">
+      <div>
+        <h1>Suivi DeepSeek</h1>
+        <p>
+          Consommation de l'API, répartition par application et demandes en attente d'heures creuses.
+        </p>
+      </div>
+      <div class="actions-entete">
+        <span id="pastille-horaire" class="pastille creuse">…</span>
+        <a id="lien-recharge" class="bouton bouton-principal" href="https://platform.deepseek.com/top_up" target="_blank" rel="noopener">
+          Recharger le compte API
+        </a>
+      </div>
+    </header>
+
+    <main>
+      <div id="bandeau" class="bandeau">Chargement des données…</div>
+
+      <section>
+        <div id="cartes" class="grille-cartes"></div>
+      </section>
+
+      <section>
+        <h2>Consommation dans le temps <span>coût estimé par jour, heures pleines / creuses</span></h2>
+        <div class="panneau">
+          <div id="graphique-jours"></div>
+          <div class="legende">
+            <span><i style="background: var(--pleine)"></i>Heures pleines (tarif normal)</span>
+            <span><i style="background: var(--creuse)"></i>Heures creuses (−50 %)</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="duo">
+        <div class="panneau">
+          <h3>Carte horaire <small>coût cumulé par jour de semaine × heure UTC — les cases encadrées sont en heures pleines</small></h3>
+          <div id="carte-thermique"></div>
+        </div>
+        <div class="panneau">
+          <h3>Par profil <small>tes deux profils de travail</small></h3>
+          <div id="graphique-profils"></div>
+          <div id="legende-profils" class="legende"></div>
+        </div>
+      </div>
+
+      <section>
+        <h2>Par application <span>dépôt GitHub, projet Hermès/Planning, sessions diverses</span></h2>
+        <div class="panneau">
+          <div id="graphique-applications"></div>
+        </div>
+      </section>
+
+      <section id="section-attente">
+        <h2>Demandes en attente d'heures creuses <span>à rejouer dès la bascule tarifaire</span></h2>
+        <div class="panneau">
+          <div id="taches" class="taches"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Sessions récentes</h2>
+        <div class="panneau defile">
+          <table>
+            <thead>
+              <tr>
+                <th>Session</th>
+                <th>Application</th>
+                <th>Profil</th>
+                <th class="nombre">Coût</th>
+                <th class="nombre">dont pleines</th>
+                <th class="nombre">Requêtes</th>
+                <th class="nombre">Tokens</th>
+                <th>Fin</th>
+              </tr>
+            </thead>
+            <tbody id="lignes-sessions"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="pied">
+        <div id="pied-regle"></div>
+        <div id="pied-source"></div>
+        <div>
+          Page statique : les données sont recalculées par <code>outils/collecter.py</code> depuis la base
+          de sessions goose, puis publiées ici. Aucune clé d'API ne figure dans cette page.
+        </div>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

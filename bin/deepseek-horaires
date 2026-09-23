@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Heures pleines / creuses de l'API DeepSeek (appelé au démarrage d'une session goose).
+set -euo pipefail
+script="$(readlink -f "${BASH_SOURCE[0]}")"
+racine="$(cd "$(dirname "$script")/.." && pwd)"
+exec python3 "$racine/outils/horaires.py" "$@"

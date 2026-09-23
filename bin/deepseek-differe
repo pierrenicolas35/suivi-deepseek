@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# File d'attente des demandes différées en heures creuses DeepSeek.
+set -euo pipefail
+script="$(readlink -f "${BASH_SOURCE[0]}")"
+racine="$(cd "$(dirname "$script")/.." && pwd)"
+exec python3 "$racine/outils/differe.py" "$@"

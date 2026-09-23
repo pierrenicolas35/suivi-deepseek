@@ -1,0 +1,81 @@
+{
+  "commentaire": "Règles d'attribution des sessions goose aux profils et aux applications. Les motifs sont des expressions régulières (insensibles à la casse par défaut).",
+  "profil_defaut": "Goose & divers",
+  "couleur_defaut": "#64748b",
+  "depots_ignores": ["runner-images", "goose", "cli", "pierrenicolas35", "actions", "aws"],
+  "profils": [
+    {
+      "nom": "Hermès / Planning",
+      "couleur": "#7c3aed",
+      "dossiers": ["hermes-planning", ".hermes"],
+      "noms": [
+        "hermes",
+        "hèrmes",
+        "planning",
+        "rexel",
+        "\\bash\\b",
+        "équité",
+        "equite",
+        "congés",
+        "conges",
+        "garde-fou",
+        "garde-fous",
+        "pseudonym",
+        "obligations légales",
+        "rotation",
+        "forge"
+      ]
+    },
+    {
+      "nom": "Apps GitHub",
+      "couleur": "#2563eb",
+      "dossiers": ["hdjverif", "tiny-print", "menus_semaine", "chronos_natation", "photo-to-scan", "calculETP", "mes_cartes_Kdo", "mes-top25", "casiers", "julesapp", "Random", "mes-justificatifs", "Ma-localisation", "braden", "Flip7"],
+      "noms": [
+        "hdj",
+        "tiny-print",
+        "label",
+        "menus",
+        "natation",
+        "chronos",
+        "scan",
+        "photo",
+        "carte",
+        "cadeau",
+        "top25",
+        "top 25",
+        "casier",
+        "jules",
+        "justificatif",
+        "localisation",
+        "braden",
+        "flip7",
+        "flip 7",
+        "etp",
+        "tirage au sort",
+        "github pages"
+      ]
+    }
+  ],
+  "apps": [
+    { "nom": "hermes-planning", "motifs": ["hermes", "hèrmes", "planning", "rexel", "rotation", "forge"], "profil": "Hermès / Planning" },
+    { "nom": "hdjverif", "motifs": ["hdj"], "profil": "Apps GitHub" },
+    { "nom": "tiny-print", "motifs": ["tiny-print", "label"], "profil": "Apps GitHub" },
+    { "nom": "menus_semaine", "motifs": ["menus"], "profil": "Apps GitHub" },
+    { "nom": "chronos_natation", "motifs": ["natation", "chronos"], "profil": "Apps GitHub" },
+    { "nom": "photo-to-scan", "motifs": ["scan", "photo"], "profil": "Apps GitHub" },
+    { "nom": "mes_cartes_Kdo", "motifs": ["carte", "cadeau", "kdo"], "profil": "Apps GitHub" },
+    { "nom": "mes-top25", "motifs": ["top25", "top 25"], "profil": "Apps GitHub" },
+    { "nom": "casiers", "motifs": ["casier"], "profil": "Apps GitHub" },
+    { "nom": "julesapp", "motifs": ["jules"], "profil": "Apps GitHub" },
+    { "nom": "Random", "motifs": ["tirage au sort", "random"], "profil": "Apps GitHub" },
+    { "nom": "mes-justificatifs", "motifs": ["justificatif"], "profil": "Apps GitHub" },
+    { "nom": "Ma-localisation", "motifs": ["localisation"], "profil": "Apps GitHub" },
+    { "nom": "braden", "motifs": ["braden"], "profil": "Apps GitHub" },
+    { "nom": "Flip7", "motifs": ["flip7", "flip 7"], "profil": "Apps GitHub" },
+    { "nom": "calculETP", "motifs": ["calculETP", "\\betp\\b"], "profil": "Apps GitHub" },
+    { "nom": "règles métier", "motifs": ["règles métier", "regles metier", "google sheet"], "profil": "Hermès / Planning" },
+    { "nom": "bots Telegram", "motifs": ["telegram", "\\bbot\\b"], "profil": "Hermès / Planning" },
+    { "nom": "suivi DeepSeek", "motifs": ["deepseek", "consommation", "suivi", "usage", "api key", "numéro api"], "profil": "Goose & divers" },
+    { "nom": "mémoire & reprise", "motifs": ["where we left off", "étape d'arrêt", "etape d'arret", "dernière tâche", "derniere tache", "cli session", "interrompue"], "profil": "Goose & divers" }
+  ]
+}
