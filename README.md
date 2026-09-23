@@ -73,11 +73,16 @@ circulation entre les écrans ne dépend donc d'aucun script.
 
 | Page | Contenu |
 |---|---|
-| **Accueil** (`index.html`) | état pleine/creuse, indicateurs clés, 7 derniers jours, solde, recharge |
+| **Accueil** (`index.html`) | état pleine/creuse, indicateurs clés, 7 derniers jours, recharge |
 | **Coûts** (`couts.html`) | coût par jour en barres empilées ou en cumul (zoomable), repères : moyenne, projection 30 jours |
 | **Horaires** (`horaires.html`) | compte à rebours, carte horaire `jour × heure UTC`, créneaux les plus coûteux |
 | **Répartition** (`repartition.html`) | donut par profil, barres par application, sessions récentes |
 | **Demandes** (`demandes.html`) | file d'attente des demandes différées et demandes déjà clôturées |
+
+En tête de **chaque** page : le **solde restant du compte** en grand, suivi de la
+**date et l'heure de la dernière collecte** des données (avec la mention
+« hors ligne : dernière copie connue » lorsque le téléphone affiche une copie
+locale). C'est l'information la plus consultée, elle ne demande aucun clic.
 
 Tout est présenté en cartes (aucun tableau à faire défiler latéralement) avec
 des cibles tactiles d'au moins 44 px et la gestion de l'encoche (`safe-area`).
@@ -139,7 +144,7 @@ Pour ajouter un projet : compléter les listes `profils` et `apps`, puis relance
 ## 7. Tests
 
 ```sh
-python3 -m pytest tests -q      # 92 tests
+python3 -m pytest tests -q      # 98 tests
 ```
 
 Ils couvrent les bornes des fenêtres tarifaires (week-ends, jours fériés,

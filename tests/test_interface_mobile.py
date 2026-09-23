@@ -70,6 +70,28 @@ def test_graphiques_colores_depuis_la_feuille_de_style():
         assert variable in APPLICATION, f"{variable} non lue depuis le thème"
 
 
+def test_solde_et_date_de_collecte_en_haut_de_chaque_page():
+    """Le solde et la date de dernière collecte sont en tête de toutes les pages."""
+    for page, html in PAGES_HTML.items():
+        contenu = html[html.index("<main") : html.index("</main>")]
+        assert 'id="solde-hero"' in contenu, f"{page}.html n'affiche pas le solde en haut"
+        assert 'id="solde-montant"' in contenu, f"{page}.html n'a pas le montant du solde"
+        assert 'id="solde-maj"' in contenu, f"{page}.html n'affiche pas la date de mise à jour"
+        # Le bandeau doit précéder tout le reste du contenu.
+        for autre in ('class="panneau"', 'class="grille-cartes"', 'class="segments"'):
+            if autre in contenu:
+                assert contenu.index('id="solde-hero"') < contenu.index(autre), (
+                    f"sur {page}.html, le solde n'est pas en tête"
+                )
+
+
+def test_le_solde_est_rempli_et_le_doublon_supprime():
+    assert "majSolde" in APPLICATION
+    assert "solde.genere_le" in APPLICATION or "donnees.genere_le" in APPLICATION
+    assert "Données mises à jour le" in APPLICATION, "la date de collecte n'est pas affichée en haut"
+    assert 'titre: "Solde du compte"' not in APPLICATION, "le solde est encore répété dans la grille d'indicateurs"
+
+
 def test_selecteur_barres_cumul_cable():
     """Régression : le sélecteur doit écouter les clics, pas seulement s'afficher."""
     assert "preparerSegments" in APPLICATION, "le sélecteur Barres/Cumul n'est pas câblé"

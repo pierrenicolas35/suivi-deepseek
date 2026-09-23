@@ -26,9 +26,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Suivi DeepSeek" />
-    <link rel="stylesheet" href="style.css?v=4" />
+    <link rel="stylesheet" href="style.css?v=5" />
   </head>
-  <body data-page="couts" data-version="4">
+  <body data-page="couts" data-version="5">
     <!-- Menu : la case à cocher ouvre le panneau sans une ligne de script. -->
     <input type="checkbox" id="bascule-menu" class="bascule" aria-label="Ouvrir le menu" />
 
@@ -44,6 +44,13 @@
     <div id="pastille-horaire" class="pastille creuse">…</div>
 
     <main id="contenu">
+      <section class="hero" id="solde-hero" aria-label="Solde du compte DeepSeek">
+        <p class="hero-titre">Solde du compte DeepSeek</p>
+        <p class="hero-montant" id="solde-montant">…</p>
+        <p class="hero-detail" id="solde-detail">chargement des données…</p>
+        <p class="hero-maj" id="solde-maj">…</p>
+      </section>
+
         <div id="message-erreur" class="bandeau erreur" hidden></div>
 
         <div class="barre-titre">
@@ -121,6 +128,6 @@
       </div>
     </nav>
 
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
   </body>
 </html>

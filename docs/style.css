@@ -329,6 +329,47 @@ main {
 .bandeau.erreur { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
 .bandeau strong { color: inherit; font-weight: 700; }
 
+/* ---------------------------------------------------------- bandeau solde */
+
+.hero {
+  background: linear-gradient(155deg, #ffffff 40%, #eef8ff);
+  border: 1px solid #bae6fd;
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 15px 18px 13px;
+  display: grid;
+  gap: 2px;
+}
+.hero-titre {
+  margin: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--texte-doux);
+}
+.hero-montant {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -1.6px;
+  line-height: 1.05;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.hero-detail { margin: 0; font-size: 12.5px; color: var(--texte-doux); }
+.hero-maj {
+  margin: 8px 0 0;
+  padding-top: 8px;
+  border-top: 1px dashed #cfe6f5;
+  font-size: 12px;
+  color: var(--texte-doux);
+}
+.hero-maj b { color: var(--texte); font-weight: 600; }
+.hero-hors-ligne { color: #b45309; }
+.hero.epuise { border-color: #fecaca; background: linear-gradient(155deg, #ffffff 40%, #fef2f2); }
+.hero.epuise .hero-montant { color: var(--danger); }
+
 .panneau {
   background: var(--carte);
   border: 1px solid var(--bord);

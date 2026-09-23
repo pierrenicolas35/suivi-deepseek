@@ -14,9 +14,9 @@
 
 /* --------------------------------------------------------------- constantes */
 
-const VERSION = 4; // doit correspondre à data-version des pages (test dédié)
-const CACHE_DONNEES = "suivi-deepseek-donnees-v4"; // doit correspondre à sw.js (test dédié)
-const LIBELLE_VERSION = "v4 · menu clair";
+const VERSION = 5; // doit correspondre à data-version des pages (test dédié)
+const CACHE_DONNEES = "suivi-deepseek-donnees-v5"; // doit correspondre à sw.js (test dédié)
+const LIBELLE_VERSION = "v5 · menu clair";
 const FENETRES_PLEINES = [
   [1, 4],
   [6, 10],
@@ -72,6 +72,16 @@ const fmtDollarPrecis = (v) => `${dollar.format(v || 0)} $`;
 const fmtTokens = (v) => compact.format(v || 0);
 const fmtEntier = (v) => entier.format(v || 0);
 const fmtPourcent = (v, decimales = 1) => `${((v || 0) * 100).toFixed(decimales)} %`;
+const montant2 = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtMontant2 = (v) => montant2.format(v || 0);
+
+/** « 23/09 à 08:45 » : horodatage court, lisible en haut d'un téléphone. */
+function fmtHorodatageCourt(iso) {
+  if (!iso) return "—";
+  return new Date(iso)
+    .toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .replace(" ", " à ");
+}
 
 function fmtDateHeure(iso) {
   if (!iso) return "—";
@@ -989,9 +999,42 @@ function remplirReperes(totaux, jours) {
   conteneur.innerHTML = lignes.map(([libelle, valeur]) => `<div><dt>${libelle}</dt><dd>${valeur}</dd></div>`).join("");
 }
 
+/* ----------------------------------------------------------- bandeau solde */
+
+/**
+ * Solde restant et date de dernière collecte : l'information la plus consultée,
+ * affichée en haut de chaque page.
+ */
+function majSolde(solde) {
+  const bloc = $id("solde-hero");
+  const valeur = $id("solde-montant");
+  const detail = $id("solde-detail");
+  const maj = $id("solde-maj");
+  if (!valeur) return;
+
+  if (solde) {
+    valeur.textContent = `${fmtMontant2(solde.total)} ${solde.devise === "USD" ? "$" : solde.devise}`;
+    if (detail) {
+      detail.textContent =
+        `rechargé ${fmtMontant2(solde.recharge)} $ · offert ${fmtMontant2(solde.offert)} $` +
+        (solde.disponible ? "" : " · solde épuisé");
+    }
+  } else {
+    valeur.textContent = "indisponible";
+    if (detail) detail.textContent = "clé d'API absente lors de la collecte";
+  }
+  if (bloc) bloc.classList.toggle("epuise", Boolean(solde) && solde.disponible === false);
+  if (maj && donnees) {
+    const horsLigne = copieHorsLigne || navigator.onLine === false;
+    maj.innerHTML =
+      `Données mises à jour le <b>${fmtHorodatageCourt(donnees.genere_le)}</b>` +
+      (horsLigne ? ' <span class="hero-hors-ligne">· hors ligne : dernière copie connue</span>' : "");
+  }
+}
+
 /* ------------------------------------------------------------- indicateurs */
 
-function cartes(totaux, solde) {
+function cartes(totaux) {
   const conteneur = $id("cartes");
   if (!conteneur || !totaux) return;
   const grille = [
@@ -1020,16 +1063,9 @@ function cartes(totaux, solde) {
     {
       titre: "Tokens",
       valeur: fmtTokens(totaux.tokens_total),
-      detail: `${fmtPourcent(totaux.taux_cache)} servis par le cache`,
-    },
-    {
-      titre: "Solde du compte",
-      valeur: solde ? `${solde.total.toFixed(2)} ${solde.devise}` : "indisponible",
-      detail: solde
-        ? `rechargé ${solde.recharge.toFixed(2)} ${solde.devise} · offert ${solde.offert.toFixed(2)} ${
-            solde.devise
-          }${solde.disponible ? "" : " · solde épuisé"}`
-        : "clé d'API absente lors de la collecte",
+      detail: `entrée ${fmtTokens(totaux.tokens_entree)} · sortie ${fmtTokens(
+        totaux.tokens_sortie
+      )} · ${fmtPourcent(totaux.taux_cache)} servis par le cache`,
       classe: "large",
     },
   ];
@@ -1219,7 +1255,8 @@ function preparerZooms() {
 function rendreTout() {
   if (!donnees) return;
   preparerZooms();
-  cartes(donnees.totaux, donnees.solde);
+  cartes(donnees.totaux);
+  majSolde(donnees.solde);
   dessinerMiniJours();
   remplirReperes(donnees.totaux, donnees.jours);
   dessinerProfils(donnees.profils);
