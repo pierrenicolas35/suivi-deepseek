@@ -3,8 +3,8 @@
    en priorité, pour ne jamais afficher des chiffres périmés sans le dire. */
 "use strict";
 
-const COQUILLE = "suivi-deepseek-coquille-v1"; // page, styles, script, icônes
-const DONNEES = "suivi-deepseek-donnees-v1"; // dernière copie des statistiques
+const COQUILLE = "suivi-deepseek-coquille-v2"; // page, styles, script, icônes
+const DONNEES = "suivi-deepseek-donnees-v2"; // dernière copie des statistiques
 const FICHIERS_COQUILLE = [
   "./",
   "./index.html",

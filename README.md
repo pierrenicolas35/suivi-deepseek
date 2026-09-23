@@ -65,15 +65,39 @@ dossiers de travail.
 est statique : elle lit `docs/data/suivi.json`. C'est aussi une **application
 installable** (manifeste + service worker, voir § 10).
 
-- **Bandeau temps réel** : heures pleines/creuses calculées dans le navigateur,
-  avec compte à rebours jusqu'à la bascule.
-- **Indicateurs** : coût selon la grille officielle, part en heures pleines,
-  économie possible, tokens, taux de cache (les tokens servis depuis le cache
-  représentent ~97 % de la consommation chez moi), solde du compte.
-- **Graphiques** : coût par jour (pleine/creuse), répartition par profil,
-  par application, carte horaire `jour de semaine × heure UTC`.
+L'interface est conçue pour un **usage au téléphone, d'une seule main** : une
+barre d'onglets fixe en bas donne accès à cinq vues, une par type d'analyse ;
+tout est présenté en cartes (aucun tableau à faire défiler latéralement) avec
+des cibles tactiles d'au moins 44 px et la gestion de l'encoche (`safe-area`).
+
+| Onglet | Contenu |
+|---|---|
+| **Synthèse** | état pleine/creuse, indicateurs clés, 7 derniers jours, solde, lien de recharge |
+| **Coûts** | coût par jour en barres empilées ou en cumul (zoomable), repères : moyenne, projection 30 jours |
+| **Horaires** | compte à rebours, carte horaire `jour × heure UTC`, créneaux les plus coûteux |
+| **Répartition** | donut par profil, barres par application, sessions récentes |
+| **Demandes** | file d'attente des demandes différées et demandes déjà clôturées |
+
+La pastille de l'en-tête — comme l'onglet **Horaires** — affiche en permanence
+l'état tarifaire et le temps restant avant la bascule, sans avoir à changer de vue.
+
+### Graphiques interactifs
+
+- **Glisser** horizontalement : parcourir la période.
+- **Pincer à deux doigts** : zoomer ; boutons − / + / ⤢ équivalents pour ceux qui
+  préfèrent, et molette sur ordinateur.
+- **Double-tap** : tout réafficher.
+- **Toucher** une barre, une case ou une part : le détail s'affiche sous le
+  graphique (coût pleine/creuse, requêtes, tokens) ; le résumé de la période
+  visible revient dès qu'on zoome.
+- Le défilement vertical de la page reste possible même si le doigt part d'un
+  graphique.
+
+Les totaux affichés sous les graphiques suivent la fenêtre visible : zoomer sur
+trois jours affiche le total de ces trois jours.
+
 - **Demandes en attente** : prompt exact à rejouer, application, heure de
-  bascule, bouton « copier le prompt ».
+  bascule, bouton « copier le prompt », et historique des demandes clôturées.
 - **Lien de recharge** : <https://platform.deepseek.com/top_up> (en-tête, cartes
   et demandes en attente).
 
@@ -111,14 +135,15 @@ Pour ajouter un projet : compléter les listes `profils` et `apps`, puis relance
 ## 7. Tests
 
 ```sh
-python3 -m pytest tests -q      # 79 tests
+python3 -m pytest tests -q      # 89 tests
 ```
 
 Ils couvrent les bornes des fenêtres tarifaires (week-ends, jours fériés,
 bascule), la grille de prix (remise creuse = moitié de la pleine, cache borné),
 l'attribution des sessions, la file d'attente, la collecte sur une base factice,
-et l'installation (liens des commandes, manifeste et icônes de l'application
-installable).
+l'installation (liens des commandes, manifeste et icônes de l'application
+installable) et l'interface mobile (cinq vues, barre d'onglets, gestes de zoom,
+redessin à la largeur de l'écran, cohérence du cache hors ligne).
 
 ## 8. Limites connues
 
@@ -148,9 +173,10 @@ suivi-deepseek/
 
 ## 10. Installer l'application
 
-Le tableau de bord est une application web installable (PWA) : une fois
-installée, elle s'ouvre en plein écran depuis son icône, sans barre d'adresse, et
-reste consultable hors ligne (dernière copie connue, clairement signalée).
+Le tableau de bord est une application web installable (PWA) pensée pour le
+téléphone (§ 4) : une fois installée, elle s'ouvre en plein écran depuis son
+icône, sans barre d'adresse, et reste consultable hors ligne (dernière copie
+connue, clairement signalée).
 
 **Ordinateur (Chrome, Edge, Brave)** — sur
 <https://pierrenicolas35.github.io/suivi-deepseek/> :

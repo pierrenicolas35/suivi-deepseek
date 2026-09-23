@@ -2,8 +2,12 @@
 <html lang="fr">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
+    />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="dark" />
     <title>Suivi DeepSeek — consommation &amp; heures creuses</title>
     <meta
       name="description"
@@ -26,97 +30,216 @@
   </head>
   <body>
     <header class="entete">
-      <div>
-        <h1>Suivi DeepSeek</h1>
-        <p>
-          Consommation de l'API, répartition par application et demandes en attente d'heures creuses.
-        </p>
+      <div class="entete-haut">
+        <div class="entete-titre">
+          <h1>Suivi DeepSeek</h1>
+          <p id="entete-sous-titre">Consommation &amp; heures creuses</p>
+        </div>
+        <div class="entete-actions">
+          <button id="bouton-rafraichir" class="bouton-icone" type="button" aria-label="Actualiser les données">
+            ⟳
+          </button>
+          <button id="bouton-installer" class="bouton-icone large" type="button" hidden>
+            Installer
+          </button>
+        </div>
       </div>
-      <div class="actions-entete">
-        <span id="pastille-horaire" class="pastille creuse">…</span>
-        <a id="lien-recharge" class="bouton bouton-principal" href="https://platform.deepseek.com/top_up" target="_blank" rel="noopener">
-          Recharger le compte API
-        </a>
-        <button id="bouton-installer" class="bouton" type="button" hidden>
-          Installer l'application
-        </button>
-      </div>
+      <button id="pastille-horaire" class="pastille creuse" type="button" aria-label="État tarifaire en cours">…</button>
     </header>
 
-    <main>
-      <div id="bandeau" class="bandeau">Chargement des données…</div>
+    <main id="contenu">
+      <!-- ======================================================== SYNTHÈSE -->
+      <section class="vue" id="vue-synthese" aria-labelledby="onglet-synthese">
+        <div id="bandeau" class="bandeau">Chargement des données…</div>
 
-      <section>
         <div id="cartes" class="grille-cartes"></div>
-      </section>
 
-      <section>
-        <h2>Consommation dans le temps <span>coût estimé par jour, heures pleines / creuses</span></h2>
         <div class="panneau">
-          <div id="graphique-jours"></div>
+          <div class="panneau-titre">
+            <h3>7 derniers jours</h3>
+            <button class="lien-bouton" type="button" data-aller="couts">Détail ›</button>
+          </div>
+          <div id="mini-jours" class="mini-graphique"></div>
           <div class="legende">
-            <span><i style="background: var(--pleine)"></i>Heures pleines (tarif normal)</span>
+            <span><i style="background: var(--pleine)"></i>Heures pleines</span>
             <span><i style="background: var(--creuse)"></i>Heures creuses (−50 %)</span>
+          </div>
+        </div>
+
+        <a
+          id="lien-recharge"
+          class="bouton bouton-principal bouton-large"
+          href="https://platform.deepseek.com/top_up"
+          target="_blank"
+          rel="noopener"
+        >
+          Recharger le compte API
+        </a>
+
+        <div class="pied">
+          <div id="pied-regle"></div>
+          <div id="pied-source"></div>
+          <div>
+            Page statique recalculée par <code>outils/collecter.py</code> depuis la base de sessions goose. Aucune clé
+            d'API ne figure dans cette page.
           </div>
         </div>
       </section>
 
-      <div class="duo">
-        <div class="panneau">
-          <h3>Carte horaire <small>coût cumulé par jour de semaine × heure UTC — les cases encadrées sont en heures pleines</small></h3>
-          <div id="carte-thermique"></div>
+      <!-- =========================================================== COÛTS -->
+      <section class="vue" id="vue-couts" aria-labelledby="onglet-couts" hidden>
+        <div class="barre-titre">
+          <h2>Coût dans le temps</h2>
+          <span class="indication">glissez pour parcourir, pincez pour zoomer</span>
         </div>
-        <div class="panneau">
-          <h3>Par profil <small>tes deux profils de travail</small></h3>
-          <div id="graphique-profils"></div>
-          <div id="legende-profils" class="legende"></div>
-        </div>
-      </div>
 
-      <section>
-        <h2>Par application <span>dépôt GitHub, projet Hermès/Planning, sessions diverses</span></h2>
+        <div class="segments" role="tablist" aria-label="Type de graphique">
+          <button class="segment actif" type="button" data-mode="barres" role="tab" aria-selected="true">Barres</button>
+          <button class="segment" type="button" data-mode="cumul" role="tab" aria-selected="false">Cumul</button>
+        </div>
+
         <div class="panneau">
-          <div id="graphique-applications"></div>
+          <div class="barre-graphique">
+            <span class="indication" id="indication-jours">Tout est affiché</span>
+            <div class="zoom-boutons" data-zoom="jours">
+              <button type="button" data-zoom-action="moins" aria-label="Dézoomer">−</button>
+              <button type="button" data-zoom-action="plus" aria-label="Zoomer">+</button>
+              <button type="button" data-zoom-action="reset" aria-label="Tout afficher">⤢</button>
+            </div>
+          </div>
+          <div id="graphique-jours" class="graphique"></div>
+          <div id="detail-jours" class="detail-graphique"></div>
+          <div id="legende-jours" class="legende"></div>
+        </div>
+
+        <div class="panneau">
+          <h3>Repères</h3>
+          <dl class="reperes" id="reperes-couts"></dl>
         </div>
       </section>
 
-      <section id="section-attente">
-        <h2>Demandes en attente d'heures creuses <span>à rejouer dès la bascule tarifaire</span></h2>
+      <!-- ======================================================== HORAIRES -->
+      <section class="vue" id="vue-horaires" aria-labelledby="onglet-horaires" hidden>
+        <div class="barre-titre">
+          <h2>Heures pleines / creuses</h2>
+        </div>
+
+        <div id="etat-horaires" class="panneau etat-horaires"></div>
+
         <div class="panneau">
+          <div class="panneau-titre">
+            <h3>
+              Carte horaire
+              <small>coût cumulé par jour de semaine et heure UTC</small>
+            </h3>
+          </div>
+          <div class="barre-graphique">
+            <span class="indication">Touchez une case pour le détail</span>
+            <div class="zoom-boutons" data-zoom="thermique">
+              <button type="button" data-zoom-action="moins" aria-label="Dézoomer">−</button>
+              <button type="button" data-zoom-action="plus" aria-label="Zoomer">+</button>
+              <button type="button" data-zoom-action="reset" aria-label="Afficher 24 heures">⤢</button>
+            </div>
+          </div>
+          <div id="carte-thermique" class="graphique"></div>
+          <div id="detail-thermique" class="detail-graphique"></div>
+          <p class="aide">Les cases encadrées en orange sont facturées au tarif normal (heures pleines).</p>
+        </div>
+
+        <div class="panneau">
+          <div class="panneau-titre">
+            <h3>Créneaux les plus coûteux</h3>
+            <span class="indication">cumul sur la période collectée</span>
+          </div>
+          <div id="creneaux" class="liste-creneaux"></div>
+        </div>
+      </section>
+
+      <!-- ===================================================== RÉPARTITION -->
+      <section class="vue" id="vue-repartition" aria-labelledby="onglet-repartition" hidden>
+        <div class="barre-titre">
+          <h2>Répartition de la dépense</h2>
+        </div>
+
+        <div class="panneau">
+          <h3>Par profil</h3>
+          <div class="donut-bloc">
+            <div id="graphique-profils" class="donut"></div>
+            <div id="legende-profils" class="legende colonne"></div>
+          </div>
+          <div id="detail-profils" class="detail-graphique"></div>
+        </div>
+
+        <div class="panneau">
+          <div class="panneau-titre">
+            <h3>Par application</h3>
+            <span class="indication">touchez pour détailler</span>
+          </div>
+          <div id="graphique-applications" class="barres-applications"></div>
+        </div>
+
+        <div class="panneau">
+          <div class="panneau-titre">
+            <h3>Sessions récentes</h3>
+            <span class="indication" id="compte-sessions"></span>
+          </div>
+          <div id="lignes-sessions" class="liste-sessions"></div>
+          <button id="bouton-plus-sessions" class="bouton bouton-large" type="button" hidden>Tout afficher</button>
+        </div>
+      </section>
+
+      <!-- ======================================================== DEMANDES -->
+      <section class="vue" id="vue-demandes" aria-labelledby="onglet-demandes" hidden>
+        <div class="barre-titre">
+          <h2>Demandes différées</h2>
+          <span class="indication">rejouées en heures creuses (−50 %)</span>
+        </div>
+
+        <div class="panneau">
+          <div class="panneau-titre">
+            <h3>En attente de bascule</h3>
+            <span class="indication" id="compte-attente"></span>
+          </div>
           <div id="taches" class="taches"></div>
         </div>
-      </section>
 
-      <section>
-        <h2>Sessions récentes</h2>
-        <div class="panneau defile">
-          <table>
-            <thead>
-              <tr>
-                <th>Session</th>
-                <th>Application</th>
-                <th>Profil</th>
-                <th class="nombre">Coût</th>
-                <th class="nombre">dont pleines</th>
-                <th class="nombre">Requêtes</th>
-                <th class="nombre">Tokens</th>
-                <th>Fin</th>
-              </tr>
-            </thead>
-            <tbody id="lignes-sessions"></tbody>
-          </table>
+        <div class="panneau" id="panneau-traitees" hidden>
+          <div class="panneau-titre">
+            <h3>Déjà clôturées</h3>
+            <span class="indication" id="compte-traitees"></span>
+          </div>
+          <div id="taches-traitees" class="taches"></div>
         </div>
-      </section>
 
-      <div class="pied">
-        <div id="pied-regle"></div>
-        <div id="pied-source"></div>
-        <div>
-          Page statique : les données sont recalculées par <code>outils/collecter.py</code> depuis la base
-          de sessions goose, puis publiées ici. Aucune clé d'API ne figure dans cette page.
-        </div>
-      </div>
+        <a
+          class="bouton bouton-principal bouton-large"
+          data-lien-recharge
+          href="https://platform.deepseek.com/top_up"
+          target="_blank"
+          rel="noopener"
+        >
+          Recharger le compte API
+        </a>
+      </section>
     </main>
+
+    <nav class="onglets" aria-label="Types d'analyse">
+      <button class="onglet" type="button" data-onglet="synthese" id="onglet-synthese" aria-selected="true">
+        <span class="icone" aria-hidden="true">🧭</span>Synthèse
+      </button>
+      <button class="onglet" type="button" data-onglet="couts" id="onglet-couts" aria-selected="false">
+        <span class="icone" aria-hidden="true">💵</span>Coûts
+      </button>
+      <button class="onglet" type="button" data-onglet="horaires" id="onglet-horaires" aria-selected="false">
+        <span class="icone" aria-hidden="true">🕒</span>Horaires
+      </button>
+      <button class="onglet" type="button" data-onglet="repartition" id="onglet-repartition" aria-selected="false">
+        <span class="icone" aria-hidden="true">📊</span>Répartition
+      </button>
+      <button class="onglet" type="button" data-onglet="demandes" id="onglet-demandes" aria-selected="false">
+        <span class="icone" aria-hidden="true">📥</span>Demandes<span id="badge-demandes" class="badge" hidden></span>
+      </button>
+    </nav>
 
     <script src="app.js"></script>
   </body>
