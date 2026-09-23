@@ -273,7 +273,7 @@ function graphiqueDonut(profils) {
       "stroke-dashoffset": (-decalage * circonference).toFixed(2),
       transform: `rotate(-90 ${taille / 2} ${taille / 2})`,
     });
-    infobulle(profil, `${profil.nom} : ${fmtDollarPrecis(profil.cout_officiel)} (${(part * 100).toFixed(1)} %)`);
+    infobulle(arc, `${profil.nom} : ${fmtDollarPrecis(profil.cout_officiel)} (${(part * 100).toFixed(1)} %)`);
     racine.appendChild(arc);
     decalage += part;
   });

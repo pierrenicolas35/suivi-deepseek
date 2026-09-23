@@ -1,5 +1,5 @@
 {
-  "genere_le": "2026-09-23T08:28:55.102358Z",
+  "genere_le": "2026-09-23T08:31:10.332052Z",
   "source_donnees": "base de sessions goose (~/.local/share/goose/sessions/sessions.db)",
   "regle_horaires": {
     "pleines": "lundi-vendredi 01:00-04:00 et 06:00-10:00 UTC, hors jours fériés chinois",
@@ -48,31 +48,31 @@
   "solde": {
     "disponible": true,
     "devise": "USD",
-    "total": 15.61,
+    "total": 15.56,
     "offert": 0.0,
-    "recharge": 15.61,
+    "recharge": 15.56,
     "toutes_devises": [
       {
         "currency": "USD",
-        "total_balance": "15.61",
+        "total_balance": "15.56",
         "granted_balance": "0.00",
-        "topped_up_balance": "15.61"
+        "topped_up_balance": "15.56"
       }
     ]
   },
   "totaux": {
-    "cout_officiel": 7.950352,
-    "cout_officiel_pleine": 2.152176,
+    "cout_officiel": 7.967837,
+    "cout_officiel_pleine": 2.16966,
     "cout_officiel_creuse": 5.798176,
-    "cout_goose": 6.874264,
-    "requetes": 4549,
-    "tokens_entree": 673081350,
-    "tokens_sortie": 4103616,
-    "tokens_cache": 656803456,
-    "tokens_total": 677184966,
-    "economie_possible": 2.152176,
-    "part_pleine": 0.2707,
-    "taux_cache": 0.9758
+    "cout_goose": 6.883006,
+    "requetes": 4564,
+    "tokens_entree": 674745711,
+    "tokens_sortie": 4108616,
+    "tokens_cache": 658462720,
+    "tokens_total": 678854327,
+    "economie_possible": 2.16966,
+    "part_pleine": 0.2723,
+    "taux_cache": 0.9759
   },
   "profils": [
     {
@@ -87,11 +87,11 @@
     },
     {
       "nom": "Goose & divers",
-      "cout_officiel": 2.130421,
-      "cout_pleine": 0.252093,
+      "cout_officiel": 2.147906,
+      "cout_pleine": 0.269577,
       "cout_creuse": 1.878328,
-      "requetes": 1172,
-      "tokens": 214491180,
+      "requetes": 1187,
+      "tokens": 216160541,
       "sessions": 7,
       "couleur": "#64748b"
     },
@@ -195,13 +195,13 @@
       "nom": "suivi DeepSeek",
       "profil": "Goose & divers",
       "couleur": "#64748b",
-      "cout_officiel": 0.19857,
-      "cout_pleine": 0.194256,
+      "cout_officiel": 0.216055,
+      "cout_pleine": 0.21174,
       "cout_creuse": 0.004315,
-      "requetes": 110,
-      "tokens": 7323472,
+      "requetes": 125,
+      "tokens": 8992833,
       "sessions": 2,
-      "derniere_activite": "2026-09-23T08:28:54Z"
+      "derniere_activite": "2026-09-23T08:31:09Z"
     }
   ],
   "jours": [
@@ -247,11 +247,11 @@
     },
     {
       "date": "2026-09-23",
-      "cout_officiel": 0.56576,
-      "cout_pleine": 0.56576,
+      "cout_officiel": 0.583245,
+      "cout_pleine": 0.583245,
       "cout_creuse": 0.0,
-      "requetes": 319,
-      "tokens": 32346246
+      "requetes": 334,
+      "tokens": 34015607
     }
   ],
   "thermique": [
@@ -467,9 +467,9 @@
       "jour_nom": "mardi",
       "heure_utc": 8,
       "pleine": true,
-      "cout": 0.194256,
-      "requetes": 106,
-      "tokens": 7283470
+      "cout": 0.21174,
+      "requetes": 121,
+      "tokens": 8952831
     },
     {
       "jour": 4,
@@ -743,14 +743,14 @@
       "dossier": "/home/ubuntu",
       "modele": "deepseek-flash",
       "debut": "2026-09-23 08:03:54",
-      "fin": "2026-09-23 08:28:54",
-      "cout_officiel": 0.194256,
-      "cout_pleine": 0.194256,
+      "fin": "2026-09-23 08:31:09",
+      "cout_officiel": 0.21174,
+      "cout_pleine": 0.21174,
       "cout_creuse": 0.0,
-      "cout_goose": 0.097128,
-      "requetes": 106,
-      "tokens": 7283470,
-      "tokens_cache": 7072768
+      "cout_goose": 0.10587,
+      "requetes": 121,
+      "tokens": 8952831,
+      "tokens_cache": 8732032
     },
     {
       "id": "20260923_1",
