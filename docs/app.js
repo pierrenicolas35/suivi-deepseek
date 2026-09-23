@@ -1,26 +1,27 @@
 /* Tableau de bord « Suivi DeepSeek » — application mobile, aucune dépendance externe.
  *
- * Organisation : cinq vues (Synthèse, Coûts, Horaires, Répartition, Demandes)
- * navigables par la barre d'onglets du bas. Les graphiques sont dessinés en SVG
- * à la largeur réelle de l'écran et sont interactifs : glissement pour parcourir,
- * pincement (ou boutons + / −) pour zoomer, double-tap pour tout réafficher,
- * toucher un élément pour en afficher le détail sous le graphique.
+ * L'application est découpée en pages : chaque page `data-page` n'affiche qu'un
+ * type d'analyse, et la navigation se fait par le menu (liens natifs, il ne
+ * dépend d'aucun script). Chaque page charge les mêmes données et dessine
+ * seulement ce qu'elle contient.
+ *
+ * Les graphiques sont dessinés en SVG à la largeur réelle de l'écran et sont
+ * interactifs : glissement pour parcourir, pincement (ou boutons + / −) pour
+ * zoomer, double-tap pour tout réafficher, toucher un élément pour en afficher
+ * le détail sous le graphique.
  */
 "use strict";
 
 /* --------------------------------------------------------------- constantes */
 
+const VERSION = "v3 · menu clair";
 const FENETRES_PLEINES = [
   [1, 4],
   [6, 10],
 ]; // lundi-vendredi, heures UTC
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const JOURS_COURTS = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
-const COULEUR_PLEINE = "#f59e0b";
-const COULEUR_CREUSE = "#22c55e";
-const COULEUR_TOTAL = "#38bdf8";
 const NS = "http://www.w3.org/2000/svg";
-const ONGLETS = ["synthese", "couts", "horaires", "repartition", "demandes"];
 const SESSIONS_AFFICHEES = 12;
 
 let donnees = null;
@@ -33,6 +34,29 @@ let zoomJours = null;
 let zoomThermique = null;
 let minuteurHorloge = null;
 let minuteurRafraichissement = null;
+
+/* ------------------------------------------- palette (source : style.css) */
+
+let paletteCache = null;
+
+function palette() {
+  if (!paletteCache) {
+    const styles = getComputedStyle(document.documentElement);
+    const lire = (nom, defaut) => (styles.getPropertyValue(nom) || "").trim() || defaut;
+    paletteCache = {
+      pleine: lire("--pleine", "#d97706"),
+      creuse: lire("--creuse", "#059669"),
+      accent: lire("--accent", "#0284c7"),
+      accentRgb: lire("--accent-rgb", "2, 132, 199"),
+      grille: lire("--grille", "#eaeff6"),
+      doux: lire("--texte-doux", "#64748b"),
+      vide: lire("--case-vide", "#eef2f7"),
+      texte: lire("--texte", "#0f172a"),
+      carte: lire("--carte", "#ffffff"),
+    };
+  }
+  return paletteCache;
+}
 
 /* ------------------------------------------------------------------ formats */
 
@@ -70,6 +94,7 @@ function fmtDuree(ms) {
 }
 
 const somme = (liste, cle) => (liste || []).reduce((acc, item) => acc + (item[cle] || 0), 0);
+const $id = (identifiant) => document.getElementById(identifiant);
 
 /* ----------------------------------------------------- heures pleines/creuses */
 
@@ -100,9 +125,9 @@ function horodatageFr(moment) {
 }
 
 function rendreHorloge() {
-  const pastille = document.getElementById("pastille-horaire");
-  const bandeau = document.getElementById("bandeau");
-  const panneau = document.getElementById("etat-horaires");
+  const pastille = $id("pastille-horaire");
+  const bandeau = $id("bandeau");
+  const panneau = $id("etat-horaires");
   const maintenant = new Date();
   const pleine = estHeurePleine(maintenant);
   const { moment, devientPleine } = prochaineBascule(maintenant);
@@ -116,14 +141,13 @@ function rendreHorloge() {
   }
 
   if (bandeau && donnees) {
-    bandeau.classList.remove("erreur");
     if (pleine) {
       bandeau.className = "bandeau alerte";
       bandeau.innerHTML =
         `<strong>⏰ Heures pleines</strong> — DeepSeek facture le tarif normal jusqu'à ` +
         `<strong>${horodatageFr(moment)}</strong> (${fmtDuree(restant)}). Pour économiser 50 %, dites simplement ` +
-        `<strong>« diffère »</strong> à Goose après votre demande : elle sera enregistrée dans l'onglet ` +
-        `<strong>Demandes</strong> et rejouable en heures creuses.`;
+        `<strong>« diffère »</strong> à Goose après votre demande : elle sera enregistrée dans le menu ` +
+        `<strong>Demandes différées</strong> et rejouable en heures creuses.`;
     } else {
       bandeau.className = "bandeau creuse";
       bandeau.innerHTML =
@@ -172,7 +196,7 @@ function texteSvg(x, y, contenu, options = {}) {
     {
       x,
       y,
-      fill: options.fill || "#93a3bd",
+      fill: options.fill || palette().doux,
       "font-size": options.taille || 11,
       "text-anchor": options.ancre || "middle",
       "font-weight": options.gras || 400,
@@ -196,7 +220,7 @@ function zoneDecoupee(racine, x, y, largeur, hauteur) {
   decoupe.appendChild(balise("rect", { x, y, width: largeur, height: hauteur }));
   defs.appendChild(decoupe);
   racine.appendChild(defs);
-  return { identifiant, groupe: () => balise("g", { "clip-path": `url(#${identifiant})` }) };
+  return () => balise("g", { "clip-path": `url(#${identifiant})` });
 }
 
 /** Échelle « ronde » : 1 · 2 · 2,5 · 5 · 10 × 10ⁿ. */
@@ -210,10 +234,9 @@ function echelleJolie(valeur) {
 }
 
 /** Panneau de détail affiché sous un graphique. */
-function afficherDetail(id, html, classe = "") {
-  const noeud = document.getElementById(id);
+function afficherDetail(id, html) {
+  const noeud = $id(id);
   if (!noeud) return;
-  noeud.className = `detail-graphique ${classe}`;
   noeud.innerHTML = html;
 }
 
@@ -225,7 +248,7 @@ function afficherDetail(id, html, classe = "") {
  *  - deux doigts : pincement = zoom autour du milieu ;
  *  - molette, boutons + / − : zoom ; double-tap / bouton ⤢ : tout afficher ;
  *  - tap simple : `onTap` (sélection d'un élément du graphique).
- * La molette et le glissement vertical restent rendus au navigateur (touch-action: pan-y).
+ * Le glissement vertical reste rendu au navigateur (touch-action: pan-y).
  */
 function creerZoomX(options) {
   let total = Math.max(1, options.total || 1);
@@ -423,8 +446,9 @@ function bornesJours(etat) {
 }
 
 function dessinerJours(etat) {
-  const conteneur = document.getElementById("graphique-jours");
+  const conteneur = $id("graphique-jours");
   if (!conteneur || !donnees) return;
+  const P = palette();
   const jours = donnees.jours || [];
   conteneur.innerHTML = "";
   conteneur.classList.toggle("vide", !jours.length);
@@ -461,7 +485,6 @@ function dessinerJours(etat) {
   const amplitude = Math.max(haut - bas, 1e-6);
   const positionY = (valeur) => marges.haut + utileHauteur * (1 - (valeur - bas) / amplitude);
 
-  // Grille + graduations
   for (let i = 0; i <= 4; i += 1) {
     const y = marges.haut + (utileHauteur * i) / 4;
     racine.appendChild(
@@ -470,7 +493,7 @@ function dessinerJours(etat) {
         x2: largeur - marges.droite,
         y1: y,
         y2: y,
-        stroke: "#24324a",
+        stroke: P.grille,
         "stroke-dasharray": i === 4 ? "0" : "3 5",
       })
     );
@@ -482,13 +505,7 @@ function dessinerJours(etat) {
   const pas = utileLargeur / etat.taille;
   const tousLes = Math.max(1, Math.ceil(34 / pas));
   const margeDecoupe = modeCouts === "cumul" ? 8 : 0;
-  const serie = zoneDecoupee(
-    racine,
-    marges.gauche - margeDecoupe,
-    0,
-    utileLargeur + margeDecoupe * 2,
-    hauteur
-  ).groupe();
+  const serie = zoneDecoupee(racine, marges.gauche - margeDecoupe, 0, utileLargeur + margeDecoupe * 2, hauteur)();
   const etiquetteDate = (index, cx) => {
     if (index % tousLes !== 0 && index !== fin) return;
     serie.appendChild(texteSvg(cx, hauteur - 11, fmtDateJour(jours[index].date)));
@@ -513,8 +530,8 @@ function dessinerJours(etat) {
       );
       let cumul = 0;
       for (const [cle, couleur, libelle] of [
-        ["cout_creuse", COULEUR_CREUSE, "heures creuses"],
-        ["cout_pleine", COULEUR_PLEINE, "heures pleines"],
+        ["cout_creuse", P.creuse, "heures creuses"],
+        ["cout_pleine", P.pleine, "heures pleines"],
       ]) {
         const valeur = jour[cle] || 0;
         if (valeur <= 0) continue;
@@ -526,7 +543,6 @@ function dessinerJours(etat) {
           height: h,
           rx: 3,
           fill: couleur,
-          opacity: 0.95,
           "data-jour": jour.date,
         });
         infobulle(rect, `${jour.date} — ${libelle} : ${fmtDollarPrecis(valeur)}`);
@@ -535,9 +551,12 @@ function dessinerJours(etat) {
       }
       etiquetteDate(index, cx);
     }
-    document.getElementById("legende-jours").innerHTML =
-      "<span><i style=\"background: " + COULEUR_PLEINE + "\"></i>Heures pleines (tarif normal)</span>" +
-      "<span><i style=\"background: " + COULEUR_CREUSE + "\"></i>Heures creuses (−50 %)</span>";
+    const legende = $id("legende-jours");
+    if (legende) {
+      legende.innerHTML =
+        `<span><i style="background: ${P.pleine}"></i>Heures pleines (tarif normal)</span>` +
+        `<span><i style="background: ${P.creuse}"></i>Heures creuses (−50 %)</span>`;
+    }
   } else {
     const points = [];
     for (let index = debut; index <= fin; index += 1) {
@@ -553,7 +572,7 @@ function dessinerJours(etat) {
     serie.appendChild(
       balise("path", {
         d: `${chemin("total")} L ${points[points.length - 1].x} ${positionY(bas)} L ${points[0].x} ${positionY(bas)} Z`,
-        fill: COULEUR_TOTAL,
+        fill: P.accent,
         opacity: 0.12,
       })
     );
@@ -561,7 +580,7 @@ function dessinerJours(etat) {
       balise("path", {
         d: chemin("total"),
         fill: "none",
-        stroke: COULEUR_TOTAL,
+        stroke: P.accent,
         "stroke-width": 2.6,
         "stroke-linejoin": "round",
       })
@@ -570,7 +589,7 @@ function dessinerJours(etat) {
       balise("path", {
         d: chemin("pleine"),
         fill: "none",
-        stroke: COULEUR_PLEINE,
+        stroke: P.pleine,
         "stroke-width": 2,
         "stroke-dasharray": "5 4",
       })
@@ -580,8 +599,8 @@ function dessinerJours(etat) {
         cx: point.x,
         cy: positionY(point.total),
         r: 4,
-        fill: "#0b1220",
-        stroke: COULEUR_TOTAL,
+        fill: P.carte,
+        stroke: P.accent,
         "stroke-width": 2,
         "data-jour": point.date,
       });
@@ -589,9 +608,12 @@ function dessinerJours(etat) {
       serie.appendChild(cercle);
       etiquetteDate(point.index, point.x);
     });
-    document.getElementById("legende-jours").innerHTML =
-      `<span><i style="background: ${COULEUR_TOTAL}"></i>Cumul depuis le début</span>` +
-      `<span><i style="background: ${COULEUR_PLEINE}"></i>dont heures pleines</span>`;
+    const legende = $id("legende-jours");
+    if (legende) {
+      legende.innerHTML =
+        `<span><i style="background: ${P.accent}"></i>Cumul depuis le début</span>` +
+        `<span><i style="background: ${P.pleine}"></i>dont heures pleines</span>`;
+    }
   }
 
   racine.appendChild(serie);
@@ -626,7 +648,7 @@ function detailJour(iso) {
 }
 
 function majIndicationJours(etat) {
-  const indication = document.getElementById("indication-jours");
+  const indication = $id("indication-jours");
   if (!indication) return;
   const arrondi = Math.round(etat.taille * 10) / 10;
   indication.textContent =
@@ -636,8 +658,9 @@ function majIndicationJours(etat) {
 /* ----------------------------------------------------- graphique : créneaux */
 
 function dessinerThermique(etat) {
-  const conteneur = document.getElementById("carte-thermique");
+  const conteneur = $id("carte-thermique");
   if (!conteneur || !donnees) return;
+  const P = palette();
   const cellules = donnees.thermique || [];
   conteneur.innerHTML = "";
   conteneur.classList.toggle("vide", !cellules.length);
@@ -665,22 +688,23 @@ function dessinerThermique(etat) {
   const pasHeures = Math.max(1, Math.ceil(26 / largeurCellule));
   // Les cases qui débordent de la fenêtre visible sont coupées : elles ne
   // recouvrent ni l'axe des jours ni les libellés d'heures.
-  const serie = zoneDecoupee(racine, marges.gauche, 0, etat.taille * largeurCellule, hauteur).groupe();
+  const serie = zoneDecoupee(racine, marges.gauche, 0, etat.taille * largeurCellule, hauteur)();
 
   for (let heure = premiereHeure; heure <= derniereHeure; heure += 1) {
     if (heure % pasHeures !== 0 && heure !== premiereHeure) continue;
     racine.appendChild(
-      texteSvg(marges.gauche + (heure - etat.debut) * largeurCellule + largeurCellule / 2, 12, `${String(heure).padStart(2, "0")}h`, {
-        taille: 10,
-      })
+      texteSvg(
+        marges.gauche + (heure - etat.debut) * largeurCellule + largeurCellule / 2,
+        12,
+        `${String(heure).padStart(2, "0")}h`,
+        { taille: 10 }
+      )
     );
   }
 
   ordreJours.forEach((jour, ligne) => {
     const y = marges.haut + ligne * hauteurCellule;
-    racine.appendChild(
-      texteSvg(marges.gauche - 7, y + 17, JOURS_COURTS[jour], { taille: 10.5, ancre: "end" })
-    );
+    racine.appendChild(texteSvg(marges.gauche - 7, y + 17, JOURS_COURTS[jour], { taille: 10.5, ancre: "end" }));
     for (let heure = premiereHeure; heure <= derniereHeure; heure += 1) {
       const cellule = cellules.find((c) => c.jour === jour && c.heure_utc === heure);
       const cout = cellule ? cellule.cout : 0;
@@ -695,12 +719,12 @@ function dessinerThermique(etat) {
         width: Math.max(2, largeurCellule - 3),
         height: hauteurCellule - 3,
         rx: 4,
-        fill: intensite === 0 ? "#16223a" : `rgba(56, 189, 248, ${(0.12 + intensite * 0.85).toFixed(2)})`,
+        fill: intensite === 0 ? P.vide : `rgba(${P.accentRgb}, ${(0.15 + intensite * 0.8).toFixed(2)})`,
         "data-jour": jour,
         "data-heure": heure,
       });
       if (pleine && jour !== 0 && jour !== 6) {
-        rect.setAttribute("stroke", COULEUR_PLEINE);
+        rect.setAttribute("stroke", P.pleine);
         rect.setAttribute("stroke-width", 1.4);
       }
       infobulle(
@@ -733,8 +757,9 @@ function detailCreneau(jour, heure) {
 }
 
 function listeCreneaux() {
-  const conteneur = document.getElementById("creneaux");
+  const conteneur = $id("creneaux");
   if (!conteneur || !donnees) return;
+  const P = palette();
   const cellules = (donnees.thermique || []).filter((c) => c.cout > 0).sort((a, b) => b.cout - a.cout).slice(0, 6);
   conteneur.innerHTML = "";
   if (!cellules.length) {
@@ -750,7 +775,7 @@ function listeCreneaux() {
       `<span class="nom">${JOURS[cellule.jour]} ${String(cellule.heure_utc).padStart(2, "0")} h UTC</span>` +
       `<span class="valeur">${fmtDollar(cellule.cout)}</span>` +
       `<span class="jauge"><i style="width:${((cellule.cout / maximum) * 100).toFixed(1)}%;background:${
-        cellule.pleine ? COULEUR_PLEINE : COULEUR_CREUSE
+        cellule.pleine ? P.pleine : P.creuse
       }"></i></span>` +
       `<span class="meta">${cellule.pleine ? "heures pleines" : "heures creuses"} · ${fmtEntier(
         cellule.requetes
@@ -763,9 +788,10 @@ function listeCreneaux() {
 /* -------------------------------------------------------- donut des profils */
 
 function dessinerProfils(profils) {
-  const conteneur = document.getElementById("graphique-profils");
-  const legende = document.getElementById("legende-profils");
-  if (!conteneur || !legende) return;
+  const conteneur = $id("graphique-profils");
+  const legende = $id("legende-profils");
+  if (!conteneur || !legende || !profils) return;
+  const P = palette();
   conteneur.innerHTML = "";
   legende.innerHTML = "";
 
@@ -782,7 +808,7 @@ function dessinerProfils(profils) {
       cy: taille / 2,
       r: rayon,
       fill: "none",
-      stroke: "#1c2740",
+      stroke: P.vide,
       "stroke-width": epaisseur,
     })
   );
@@ -807,16 +833,14 @@ function dessinerProfils(profils) {
     decalage += part;
   });
 
-  racine.appendChild(
-    texteSvg(taille / 2, taille / 2 - taille * 0.02, "Total", { taille: taille * 0.06 })
-  );
+  racine.appendChild(texteSvg(taille / 2, taille / 2 - taille * 0.02, "Total", { taille: taille * 0.06 }));
   racine.appendChild(
     balise(
       "text",
       {
         x: taille / 2,
         y: taille / 2 + taille * 0.09,
-        fill: "#e6ecf5",
+        fill: P.texte,
         "font-size": Math.max(16, taille * 0.115),
         "font-weight": 700,
         "text-anchor": "middle",
@@ -826,8 +850,8 @@ function dessinerProfils(profils) {
   );
   racine.addEventListener("click", (evenement) => {
     const arc = evenement.target.closest("[stroke]");
-    const nom = arc && arc.getAttribute("stroke");
-    const profil = profils.find((p) => p.couleur === nom);
+    const couleur = arc && arc.getAttribute("stroke");
+    const profil = profils.find((p) => p.couleur === couleur);
     if (profil) detailProfil(profil);
   });
   conteneur.appendChild(racine);
@@ -857,8 +881,9 @@ function detailProfil(profil) {
 /* ---------------------------------------------------- barres applications */
 
 function listeApplications(applications) {
-  const conteneur = document.getElementById("graphique-applications");
-  if (!conteneur) return;
+  const conteneur = $id("graphique-applications");
+  if (!conteneur || !applications) return;
+  const P = palette();
   conteneur.innerHTML = "";
   if (!applications.length) {
     conteneur.innerHTML = '<p class="vide">Aucune donnée collectée.</p>';
@@ -879,8 +904,8 @@ function listeApplications(applications) {
         application.cout_officiel
       )}${ouverte ? " ▲" : " ▾"}</span></span>` +
       `<span class="piste" style="width:${largeurRelative.toFixed(1)}%">` +
-      `<i style="width:${((1 - partPleines) * 100).toFixed(1)}%;background:${COULEUR_CREUSE}"></i>` +
-      `<i style="width:${(partPleines * 100).toFixed(1)}%;background:${COULEUR_PLEINE}"></i></span>` +
+      `<i style="width:${((1 - partPleines) * 100).toFixed(1)}%;background:${P.creuse}"></i>` +
+      `<i style="width:${(partPleines * 100).toFixed(1)}%;background:${P.pleine}"></i></span>` +
       `<span class="meta">${application.profil} · ${fmtEntier(application.requetes)} requêtes · ${fmtEntier(
         application.sessions
       )} sessions</span>` +
@@ -902,13 +927,13 @@ function listeApplications(applications) {
   });
 }
 
-/* ---------------------------------------------------------- sessions (cartes) */
+/* ------------------------------------------------------- sessions (cartes) */
 
 function listeSessions(sessions) {
-  const conteneur = document.getElementById("lignes-sessions");
-  const bouton = document.getElementById("bouton-plus-sessions");
-  const compte = document.getElementById("compte-sessions");
-  if (!conteneur) return;
+  const conteneur = $id("lignes-sessions");
+  if (!conteneur || !sessions) return;
+  const bouton = $id("bouton-plus-sessions");
+  const compte = $id("compte-sessions");
 
   const triees = [...sessions].sort((a, b) => new Date(b.fin || 0) - new Date(a.fin || 0));
   const affichees = sessionsToutes ? triees : triees.slice(0, SESSIONS_AFFICHEES);
@@ -947,8 +972,8 @@ function listeSessions(sessions) {
 /* ------------------------------------------------------------------ repères */
 
 function remplirReperes(totaux, jours) {
-  const conteneur = document.getElementById("reperes-couts");
-  if (!conteneur) return;
+  const conteneur = $id("reperes-couts");
+  if (!conteneur || !totaux) return;
   const nombreJours = Math.max(1, (jours || []).length);
   const moyenne = totaux.cout_officiel / nombreJours;
   const lignes = [
@@ -965,8 +990,8 @@ function remplirReperes(totaux, jours) {
 /* ------------------------------------------------------------- indicateurs */
 
 function cartes(totaux, solde) {
-  const conteneur = document.getElementById("cartes");
-  if (!conteneur) return;
+  const conteneur = $id("cartes");
+  if (!conteneur || !totaux) return;
   const grille = [
     {
       titre: "Coût total",
@@ -1019,8 +1044,8 @@ function cartes(totaux, solde) {
 }
 
 function dessinerMiniJours() {
-  const conteneur = document.getElementById("mini-jours");
-  if (!conteneur) return;
+  const conteneur = $id("mini-jours");
+  if (!conteneur || !donnees) return;
   const jours = (donnees.jours || []).slice(-7);
   conteneur.innerHTML = "";
   if (!jours.length) {
@@ -1038,8 +1063,7 @@ function dessinerMiniJours() {
       `<div class="mini-seg pleine" style="flex:${Math.max(jour.cout_pleine, 0.0001)}"></div>` +
       `</div><span class="mini-etiquette">${fmtDateJour(jour.date)}</span>`;
     bloc.addEventListener("click", () => {
-      montrerOnglet("couts");
-      detailJour(jour.date);
+      window.location.href = "couts.html";
     });
     conteneur.appendChild(bloc);
   });
@@ -1068,9 +1092,7 @@ function carteTache(tache, lienRecharge, traitee) {
   entete.className = "entete-tache";
   const gauche = document.createElement("div");
   gauche.innerHTML =
-    `<span class="etiquette" style="border-color:${traitee ? COULEUR_CREUSE : COULEUR_PLEINE}">${
-      tache.application
-    }</span> ` + `<span class="etiquette">${tache.profil || "—"}</span>`;
+    `<span class="etiquette">${tache.application}</span> <span class="etiquette">${tache.profil || "—"}</span>`;
   const bouton = document.createElement("button");
   bouton.className = "bouton";
   bouton.type = "button";
@@ -1099,30 +1121,30 @@ function carteTache(tache, lienRecharge, traitee) {
 }
 
 function sectionTaches(enAttente, traitees, lienRecharge) {
-  const conteneur = document.getElementById("taches");
-  const compte = document.getElementById("compte-attente");
-  const badge = document.getElementById("badge-demandes");
+  const conteneur = $id("taches");
+  const compte = $id("compte-attente");
+  const badge = $id("badge-demandes");
   if (compte) compte.textContent = enAttente.length ? `${enAttente.length} en attente` : "aucune";
-  if (badge) {
-    badge.hidden = !enAttente.length;
-    badge.textContent = String(enAttente.length);
-  }
-  if (!conteneur) return;
-  conteneur.innerHTML = "";
-  if (!enAttente.length) {
-    const vide = document.createElement("p");
-    vide.className = "vide";
-    vide.innerHTML =
-      "Aucune demande en attente. En heures pleines, après votre instruction, Goose vous propose de différer : " +
-      "la demande apparaît alors ici avec son prompt, l'application concernée et l'heure de bascule.";
-    conteneur.appendChild(vide);
-  } else {
-    enAttente.forEach((tache) => conteneur.appendChild(carteTache(tache, lienRecharge, false)));
+  if (badge) badge.hidden = !enAttente.length;
+  if (badge) badge.textContent = String(enAttente.length);
+
+  if (conteneur) {
+    conteneur.innerHTML = "";
+    if (!enAttente.length) {
+      const vide = document.createElement("p");
+      vide.className = "vide";
+      vide.innerHTML =
+        "Aucune demande en attente. En heures pleines, après votre instruction, Goose vous propose de différer : " +
+        "la demande apparaîtra ici avec son prompt, l'application concernée et l'heure de bascule.";
+      conteneur.appendChild(vide);
+    } else {
+      enAttente.forEach((tache) => conteneur.appendChild(carteTache(tache, lienRecharge, false)));
+    }
   }
 
-  const panneau = document.getElementById("panneau-traitees");
-  const conteneurTraitees = document.getElementById("taches-traitees");
-  const compteTraitees = document.getElementById("compte-traitees");
+  const panneau = $id("panneau-traitees");
+  const conteneurTraitees = $id("taches-traitees");
+  const compteTraitees = $id("compte-traitees");
   const liste = traitees || [];
   if (panneau) panneau.hidden = !liste.length;
   if (compteTraitees) compteTraitees.textContent = `${liste.length} demande(s)`;
@@ -1139,33 +1161,30 @@ function sectionTaches(enAttente, traitees, lienRecharge) {
 /* ----------------------------------------------------------------- rendu vues */
 
 function preparerZooms() {
-  if (!zoomJours) {
-    const total = Math.max(1, (donnees.jours || []).length);
+  const conteneurJours = $id("graphique-jours");
+  if (conteneurJours && !zoomJours) {
     zoomJours = creerZoomX({
-      total,
+      total: Math.max(1, (donnees.jours || []).length),
       minimum: 1,
       changer: (etat) => {
         majIndicationJours(etat);
         dessinerJours(etat);
         afficherDetail("detail-jours", resumeJours(etat));
       },
-      largeurTrace: () => {
-        const conteneur = document.getElementById("graphique-jours");
-        return Math.max(120, (conteneur ? conteneur.clientWidth : 340) - 58);
-      },
+      largeurTrace: () => Math.max(120, conteneurJours.clientWidth - 58),
       margeGauche: () => 48,
       onTap: (cible) => {
         const element = cible && cible.closest ? cible.closest("[data-jour]") : null;
         if (element) detailJour(element.getAttribute("data-jour"));
       },
     });
-    zoomJours.attacher(document.getElementById("graphique-jours"));
+    zoomJours.attacher(conteneurJours);
     zoomJours.brancherBoutons(document.querySelector('[data-zoom="jours"]'));
   }
 
-  if (!zoomThermique) {
-    const conteneur = document.getElementById("carte-thermique");
-    const largeur = largeurUtile(conteneur || { clientWidth: 340 });
+  const conteneurThermique = $id("carte-thermique");
+  if (conteneurThermique && !zoomThermique) {
+    const largeur = largeurUtile(conteneurThermique);
     const tailleInitiale = Math.min(24, Math.max(6, (largeur - 38) / 24));
     zoomThermique = creerZoomX({
       total: 24,
@@ -1177,16 +1196,11 @@ function preparerZooms() {
           "detail-thermique",
           `<span><b>${Math.round(etat.taille)} heures affichées</b> — de ${String(
             Math.max(0, Math.floor(etat.debut))
-          ).padStart(2, "0")} h à ${String(Math.min(24, Math.ceil(etat.debut + etat.taille))).padStart(
-            2,
-            "0"
-          )} h UTC · touchez une case pour le détail d'un créneau.</span>`
+          ).padStart(2, "0")} h à ${String(Math.min(24, Math.ceil(etat.debut + etat.taille))).padStart(2, "0")} h UTC` +
+            ` · touchez une case pour le détail d'un créneau.</span>`
         );
       },
-      largeurTrace: () => {
-        const noeud = document.getElementById("carte-thermique");
-        return Math.max(120, (noeud ? noeud.clientWidth : 340) - 38);
-      },
+      largeurTrace: () => Math.max(120, conteneurThermique.clientWidth - 38),
       margeGauche: () => 32,
       onTap: (cible) => {
         const element = cible && cible.closest ? cible.closest("[data-heure]") : null;
@@ -1195,36 +1209,41 @@ function preparerZooms() {
         }
       },
     });
-    zoomThermique.attacher(document.getElementById("carte-thermique"));
+    zoomThermique.attacher(conteneurThermique);
     zoomThermique.brancherBoutons(document.querySelector('[data-zoom="thermique"]'));
   }
 }
 
 function rendreTout() {
   if (!donnees) return;
-  if (!zoomJours || !zoomThermique) preparerZooms();
+  preparerZooms();
   cartes(donnees.totaux, donnees.solde);
   dessinerMiniJours();
   remplirReperes(donnees.totaux, donnees.jours);
   dessinerProfils(donnees.profils);
-  afficherDetail("detail-profils", "<span>Touchez un profil, une part du donut ou une légende pour en voir le détail.</span>");
+  afficherDetail(
+    "detail-profils",
+    "<span>Touchez un profil, une part du donut ou une légende pour en voir le détail.</span>"
+  );
   listeApplications(donnees.applications);
   listeSessions(donnees.sessions);
   listeCreneaux();
   sectionTaches(donnees.en_attente || [], donnees.en_attente_traitees || [], donnees.lien_recharge);
 
-  zoomJours.majTotal(Math.max(1, (donnees.jours || []).length));
-  zoomJours.rafraichir();
-  zoomThermique.rafraichir();
+  if (zoomJours) {
+    zoomJours.majTotal(Math.max(1, (donnees.jours || []).length));
+    zoomJours.rafraichir();
+  }
+  if (zoomThermique) zoomThermique.rafraichir();
 
   document.querySelectorAll("[data-lien-recharge], #lien-recharge").forEach((lien) => {
     lien.href = donnees.lien_recharge;
   });
-  const piedRegle = document.getElementById("pied-regle");
+  const piedRegle = $id("pied-regle");
   if (piedRegle) {
     piedRegle.textContent = `Heures pleines : ${donnees.regle_horaires.pleines} — ${donnees.regle_horaires.source}`;
   }
-  const piedSource = document.getElementById("pied-source");
+  const piedSource = $id("pied-source");
   if (piedSource) {
     piedSource.textContent =
       `Grille tarifaire relevée le ${donnees.grille_tarifaire.releve_le} (${donnees.grille_tarifaire.unite}, ` +
@@ -1232,67 +1251,27 @@ function rendreTout() {
       `source : ${donnees.source_donnees}` +
       (copieHorsLigne || navigator.onLine === false ? " · hors ligne : dernière copie connue" : "");
   }
-  const sousTitre = document.getElementById("entete-sous-titre");
-  if (sousTitre) {
-    sousTitre.textContent = `Mis à jour le ${fmtDateHeure(donnees.genere_le)}${
-      copieHorsLigne ? " · hors ligne" : ""
-    }`;
-  }
+  const piedVersion = $id("pied-version");
+  if (piedVersion) piedVersion.textContent = `Interface ${VERSION}.`;
 }
 
-/* ------------------------------------------------------------- navigation */
+/* -------------------------------------------------------------------- menu */
 
-function montrerOnglet(nom, options = {}) {
-  const cible = ONGLETS.includes(nom) ? nom : "synthese";
-  ONGLETS.forEach((cle) => {
-    const vue = document.getElementById(`vue-${cle}`);
-    const onglet = document.querySelector(`.onglet[data-onglet="${cle}"]`);
-    const actif = cle === cible;
-    if (vue) vue.hidden = !actif;
-    if (onglet) onglet.setAttribute("aria-selected", actif ? "true" : "false");
+function preparerMenu() {
+  const bascule = $id("bascule-menu");
+  if (!bascule) return;
+  // Après un retour arrière, le navigateur peut restaurer la page avec le menu
+  // resté ouvert : on le referme systématiquement.
+  window.addEventListener("pageshow", () => {
+    bascule.checked = false;
   });
-  if (options.defiler !== false) window.scrollTo({ top: 0, behavior: "auto" });
-  if (options.memoire !== false && location.hash !== `#${cible}`) {
-    history.replaceState(null, "", `#${cible}`);
-  }
-  if (options.vibration !== false && navigator.vibrate) navigator.vibrate(6);
-}
-
-function preparerNavigation() {
-  document.querySelectorAll(".onglet").forEach((onglet) => {
-    onglet.addEventListener("click", () => montrerOnglet(onglet.getAttribute("data-onglet")));
-  });
-  document.querySelectorAll("[data-aller]").forEach((bouton) => {
-    bouton.addEventListener("click", () => montrerOnglet(bouton.getAttribute("data-aller")));
-  });
-  const pastille = document.getElementById("pastille-horaire");
-  if (pastille) pastille.addEventListener("click", () => montrerOnglet("horaires"));
-
-  document.querySelectorAll(".segment").forEach((segment) => {
-    segment.addEventListener("click", () => {
-      modeCouts = segment.getAttribute("data-mode");
-      document.querySelectorAll(".segment").forEach((autre) => {
-        const actif = autre === segment;
-        autre.classList.toggle("actif", actif);
-        autre.setAttribute("aria-selected", actif ? "true" : "false");
-      });
-      if (donnees && zoomJours) zoomJours.rafraichir();
+  document.querySelectorAll(".menu a").forEach((lien) => {
+    lien.addEventListener("click", () => {
+      bascule.checked = false;
     });
   });
-
-  window.addEventListener("hashchange", () => montrerOnglet(location.hash.slice(1), { defiler: false, memoire: false }));
-
-  let minuteurRedimensionnement = null;
-  window.addEventListener("resize", () => {
-    clearTimeout(minuteurRedimensionnement);
-    minuteurRedimensionnement = setTimeout(() => {
-      if (donnees && zoomJours) {
-        zoomJours.rafraichir();
-        zoomThermique.rafraichir();
-        dessinerMiniJours();
-        dessinerProfils(donnees.profils);
-      }
-    }, 200);
+  document.addEventListener("keydown", (evenement) => {
+    if (evenement.key === "Escape") bascule.checked = false;
   });
 }
 
@@ -1309,18 +1288,18 @@ function applicationInstallee() {
 }
 
 function afficherBoutonInstallation(texte) {
-  const bouton = document.getElementById("bouton-installer");
+  const bouton = $id("bouton-installer");
   if (!bouton || applicationInstallee()) return;
   if (texte) bouton.textContent = texte;
   bouton.hidden = false;
 }
 
 function lancerInstallation() {
-  const bouton = document.getElementById("bouton-installer");
   if (inviteInstallation) {
     inviteInstallation.prompt();
     inviteInstallation.userChoice.then(() => {
       inviteInstallation = null;
+      const bouton = $id("bouton-installer");
       if (bouton) bouton.hidden = true;
     });
     return;
@@ -1334,13 +1313,13 @@ function lancerInstallation() {
 }
 
 function preparerInstallation() {
-  const bouton = document.getElementById("bouton-installer");
+  const bouton = $id("bouton-installer");
   if (bouton) bouton.addEventListener("click", lancerInstallation);
 
   window.addEventListener("beforeinstallprompt", (evenement) => {
     evenement.preventDefault();
     inviteInstallation = evenement;
-    afficherBoutonInstallation("Installer");
+    afficherBoutonInstallation("Installer l'application");
   });
 
   window.addEventListener("appinstalled", () => {
@@ -1348,10 +1327,9 @@ function preparerInstallation() {
     if (bouton) bouton.hidden = true;
   });
 
-  // iOS n'émet pas « beforeinstallprompt » : on propose la marche à suivre.
   const ua = navigator.userAgent || "";
   const ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  if (ios) afficherBoutonInstallation("Installer");
+  if (ios) afficherBoutonInstallation("Installer sur l'écran d'accueil");
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {
@@ -1363,7 +1341,7 @@ function preparerInstallation() {
 async function memoriserDonnees(reponse) {
   if (!("caches" in window)) return;
   try {
-    const cache = await caches.open("suivi-deepseek-donnees-v2");
+    const cache = await caches.open("suivi-deepseek-donnees-v3");
     await cache.put("data/suivi.json", reponse.clone());
   } catch (erreur) {
     /* stockage indisponible : la page reste utilisable en ligne */
@@ -1380,13 +1358,12 @@ async function donneesEnCache() {
   }
 }
 
-function afficherErreur(erreur) {
-  const bandeau = document.getElementById("bandeau");
+function afficherErreur(erreur, bandeau) {
   if (!bandeau) return;
   bandeau.className = "bandeau erreur";
   bandeau.innerHTML = navigator.onLine
     ? `Données indisponibles (${erreur.message}). Lancez <code>python3 outils/collecter.py</code> à la racine du ` +
-      "projet, puis appuyez sur ⟳."
+      "projet, puis rechargez la page."
     : "Hors ligne : aucune copie des statistiques n'est encore enregistrée sur cet appareil. " +
       "Reconnectez-vous une fois pour l'activer.";
 }
@@ -1403,7 +1380,7 @@ async function chargerDonnees() {
     // dernière copie connue, en le signalant explicitement dans le pied de page.
     const enCache = await donneesEnCache();
     if (!enCache) {
-      afficherErreur(erreur);
+      afficherErreur(erreur, $id("bandeau") || $id("message-erreur"));
       return null;
     }
     copieHorsLigne = true;
@@ -1411,25 +1388,16 @@ async function chargerDonnees() {
   }
 }
 
-async function actualiser(vibration) {
+async function actualiser() {
   const contenu = await chargerDonnees();
   if (!contenu) return;
   donnees = contenu;
   joursFeries = new Set(donnees.regle_horaires.jours_feries_chinois || []);
   rendreHorloge();
   rendreTout();
-  if (vibration && navigator.vibrate) navigator.vibrate(12);
 }
 
 function preparerRafraichissement() {
-  const bouton = document.getElementById("bouton-rafraichir");
-  if (bouton) {
-    bouton.addEventListener("click", async () => {
-      bouton.textContent = "…";
-      await actualiser(true);
-      bouton.textContent = "⟳";
-    });
-  }
   if (!minuteurHorloge) minuteurHorloge = setInterval(rendreHorloge, 1000);
   if (!minuteurRafraichissement) {
     minuteurRafraichissement = setInterval(async () => {
@@ -1442,18 +1410,28 @@ function preparerRafraichissement() {
   }
 }
 
-async function demarrer() {
-  await actualiser(false);
-  if (!donnees) return;
-  preparerZooms();
-  rendreHorloge();
-  rendreTout();
-  preparerRafraichissement();
+function preparerRedimensionnement() {
+  let minuteur = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(minuteur);
+    minuteur = setTimeout(() => {
+      paletteCache = null;
+      if (!donnees) return;
+      paletteCache = null;
+      if (zoomJours) zoomJours.rafraichir();
+      if (zoomThermique) zoomThermique.rafraichir();
+      dessinerMiniJours();
+      dessinerProfils(donnees.profils);
+    }, 200);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  preparerMenu();
   preparerInstallation();
-  preparerNavigation();
-  montrerOnglet(location.hash.slice(1), { defiler: false, memoire: false, vibration: false });
-  demarrer();
+  preparerRedimensionnement();
+  actualiser().then(() => {
+    rendreHorloge();
+    preparerRafraichissement();
+  });
 });

@@ -1,4 +1,4 @@
-"""Interface mobile : vues par type d'analyse, gestes de zoom, cohérence hors ligne."""
+"""Interface téléphone : pages par type d'analyse, menu, thème clair, graphiques zoomables."""
 
 import re
 from pathlib import Path
@@ -6,44 +6,68 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 DOCS = RACINE / "docs"
 
-PAGE = (DOCS / "index.html").read_text(encoding="utf-8")
-APPLICATION = (DOCS / "app.js").read_text(encoding="utf-8")
+PAGES = ("index", "couts", "horaires", "repartition", "demandes")
 STYLES = (DOCS / "style.css").read_text(encoding="utf-8")
+APPLICATION = (DOCS / "app.js").read_text(encoding="utf-8")
 WORKER = (DOCS / "sw.js").read_text(encoding="utf-8")
 
-VUES = ("synthese", "couts", "horaires", "repartition", "demandes")
+PAGES_HTML = {page: (DOCS / f"{page}.html").read_text(encoding="utf-8") for page in PAGES}
 
 
-def test_une_vue_et_un_onglet_par_type_d_analyse():
-    for vue in VUES:
-        assert f'id="vue-{vue}"' in PAGE, f"vue « {vue} » absente"
-        assert f'data-onglet="{vue}"' in PAGE, f"onglet « {vue} » absent"
-    assert PAGE.count('class="onglet"') == len(VUES), "la barre d'onglets ne compte pas cinq entrées"
+def test_une_page_par_type_d_analyse():
+    for page in PAGES:
+        assert (DOCS / f"{page}.html").is_file(), f"{page}.html manquant"
+        assert f'data-page="{page}"' in PAGES_HTML[page], f"{page}.html ne déclare pas sa page"
 
 
-def test_une_seule_vue_visible_au_chargement():
-    sections = re.findall(r'<section class="vue"[^>]*>', PAGE)
-    assert len(sections) == len(VUES)
-    assert sum("hidden" in section for section in sections) == len(VUES) - 1
+def test_navigation_par_menu_avec_des_liens_natifs():
+    """Le menu doit être fait de vrais liens : aucune navigation dépendant du script."""
+    for page, html in PAGES_HTML.items():
+        for cible in PAGES:
+            assert f'href="{cible}.html"' in html, f"{page}.html ne renvoie pas vers {cible}.html"
+        assert 'class="menu"' in html and 'class="menu-liste"' in html
+        assert 'aria-current="page"' in html, f"{page}.html ne marque pas la page courante"
 
 
-def test_navigation_par_onglets_et_par_adresse():
-    assert "montrerOnglet" in APPLICATION
-    assert "addEventListener(\"hashchange\"" in APPLICATION, "les vues ne sont pas adressables (#couts…)"
-    assert "aria-selected" in APPLICATION, "l'onglet actif n'est pas annoncé"
+def test_menu_ouvrable_sans_script():
+    """L'ouverture du menu repose sur une case à cocher stylée en CSS."""
+    assert 'type="checkbox" id="bascule-menu"' in PAGES_HTML["index"]
+    assert ".bascule:checked ~ .menu" in STYLES, "le menu ne s'ouvre pas en CSS pur"
+    assert PAGES_HTML["index"].index('id="bascule-menu"') < PAGES_HTML["index"].index('class="menu"')
 
 
-def test_mise_en_page_pensee_pour_le_smartphone():
-    assert "viewport-fit=cover" in PAGE, "encoche et barre d'état non gérées"
-    assert "safe-area-inset-bottom" in STYLES, "la barre d'onglets passe sous la barre gestuelle"
-    assert "safe-area-inset-top" in STYLES
-    assert "@media (min-width" in STYLES
+def test_chaque_page_a_un_retour_et_un_rafraichissement_natifs():
+    for page, html in PAGES_HTML.items():
+        assert 'class="bouton-menu"' in html, f"{page}.html n'a pas de bouton menu"
+        assert 'href=""' in html, f"{page}.html n'a pas de lien d'actualisation"
 
 
-def test_barre_d_onglets_fixe_en_bas():
-    bloc = re.search(r"\.onglets \{(.*?)\}", STYLES, re.S).group(1)
-    assert "position: fixed" in bloc
-    assert "bottom: 0" in bloc
+def test_theme_clair_sur_fond_blanc():
+    entete = STYLES[STYLES.index(":root {") : STYLES.index("}", STYLES.index(":root {"))]
+    assert "color-scheme: light" in entete, "le thème clair n'est pas déclaré"
+    assert "--carte: #ffffff" in entete, "les cartes ne sont pas blanches"
+    assert "--fond: #f4f6fb" in entete, "le fond n'est pas clair"
+    assert "--texte: #0f172a" in entete, "le texte doit être foncé sur fond clair"
+    # Aucune des anciennes couleurs sombres ne doit subsister.
+    for sombre in ("#0b1220", "#121c2f", "#16223a", "#1c2740"):
+        assert sombre not in STYLES, f"couleur sombre {sombre} encore présente"
+
+
+def test_pages_et_manifeste_en_theme_clair():
+    for page, html in PAGES_HTML.items():
+        assert 'name="color-scheme" content="light"' in html, f"{page}.html n'annonce pas le thème clair"
+        assert 'name="theme-color" content="#ffffff"' in html, f"{page}.html n'a pas de barre blanche"
+    manifeste = (DOCS / "manifest.webmanifest").read_text(encoding="utf-8")
+    assert '"theme_color": "#ffffff"' in manifeste
+    assert '"background_color": "#f4f6fb"' in manifeste
+
+
+def test_graphiques_colores_depuis_la_feuille_de_style():
+    """Les graphiques suivent le thème : leur palette est lue dans le CSS."""
+    assert "getComputedStyle" in APPLICATION
+    assert "palette()" in APPLICATION
+    for variable in ("--pleine", "--creuse", "--grille", "--case-vide"):
+        assert variable in APPLICATION, f"{variable} non lue depuis le thème"
 
 
 def test_graphiques_zoomables_au_doigt_et_a_la_souris():
@@ -53,9 +77,8 @@ def test_graphiques_zoomables_au_doigt_et_a_la_souris():
     assert "Math.hypot" in APPLICATION, "le pincement à deux doigts n'est pas calculé"
     assert "touch-action: pan-y" in STYLES, "le glissement vertical de la page doit rester possible"
     for action in ("plus", "moins", "reset"):
-        assert f'data-zoom-action="{action}"' in PAGE, f"bouton de zoom « {action} » absent"
-    assert PAGE.count('data-zoom="jours"') == 1
-    assert PAGE.count('data-zoom="thermique"') == 1
+        assert f'data-zoom-action="{action}"' in PAGES_HTML["couts"]
+        assert f'data-zoom-action="{action}"' in PAGES_HTML["horaires"]
 
 
 def test_graphiques_dessines_a_la_largeur_de_l_ecran():
@@ -67,17 +90,23 @@ def test_graphiques_dessines_a_la_largeur_de_l_ecran():
 
 def test_detail_au_toucher_pour_chaque_graphique():
     for panneau in ("detail-jours", "detail-thermique", "detail-profils"):
-        assert f'id="{panneau}"' in PAGE, f"panneau de détail « {panneau} » absent"
+        assert f'id="{panneau}"' in PAGES_HTML["couts"] + PAGES_HTML["horaires"] + PAGES_HTML["repartition"]
     assert "onTap" in APPLICATION
 
 
-def test_plus_de_tableau_html_dans_les_vues_mobiles():
-    """Les tableaux larges sont remplacés par des listes de cartes."""
-    assert "<table" not in PAGE
-    assert "listeSessions" in APPLICATION
+def test_plus_de_tableau_html_dans_les_pages():
+    """Sur téléphone, les tableaux larges sont remplacés par des listes de cartes."""
+    for page, html in PAGES_HTML.items():
+        assert "<table" not in html, f"{page}.html contient encore un tableau"
+
+
+def test_toutes_les_pages_sont_disponibles_hors_ligne():
+    for page in PAGES:
+        assert f'"./{page}.html"' in WORKER, f"{page}.html absent de la coquille du service worker"
 
 
 def test_cache_des_donnees_partage_entre_page_et_service_worker():
     version_application = re.search(r'caches\.open\("(suivi-deepseek-donnees-v\d+)"\)', APPLICATION)
     assert version_application, "la page n'enregistre pas la copie hors ligne des données"
     assert f'"{version_application.group(1)}"' in WORKER, "page et service worker utilisent deux caches différents"
+    assert "suivi-deepseek-coquille-v3" in WORKER

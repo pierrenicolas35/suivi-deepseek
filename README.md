@@ -61,25 +61,29 @@ dossiers de travail.
 
 ## 4. Tableau de bord
 
-`docs/` est publié sur GitHub Pages par `.github/workflows/pages.yml`. La page
-est statique : elle lit `docs/data/suivi.json`. C'est aussi une **application
-installable** (manifeste + service worker, voir § 10).
+`docs/` est publié sur GitHub Pages par `.github/workflows/pages.yml`. Les pages
+sont statiques : elles lisent `docs/data/suivi.json`. C'est aussi une
+**application installable** (manifeste + service worker, voir § 10).
 
-L'interface est conçue pour un **usage au téléphone, d'une seule main** : une
-barre d'onglets fixe en bas donne accès à cinq vues, une par type d'analyse ;
-tout est présenté en cartes (aucun tableau à faire défiler latéralement) avec
-des cibles tactiles d'au moins 44 px et la gestion de l'encoche (`safe-area`).
+L'interface est **claire (fond blanc)** et conçue pour un **usage au téléphone,
+d'une seule main**. La navigation se fait par le **menu** : le bouton ☰ ouvre la
+liste des analyses, et chaque entrée mène à **sa propre page**. Le menu et les
+liens sont du HTML/CSS pur (une case à cocher pilote l'ouverture) : la
+circulation entre les écrans ne dépend donc d'aucun script.
 
-| Onglet | Contenu |
+| Page | Contenu |
 |---|---|
-| **Synthèse** | état pleine/creuse, indicateurs clés, 7 derniers jours, solde, lien de recharge |
-| **Coûts** | coût par jour en barres empilées ou en cumul (zoomable), repères : moyenne, projection 30 jours |
-| **Horaires** | compte à rebours, carte horaire `jour × heure UTC`, créneaux les plus coûteux |
-| **Répartition** | donut par profil, barres par application, sessions récentes |
-| **Demandes** | file d'attente des demandes différées et demandes déjà clôturées |
+| **Accueil** (`index.html`) | état pleine/creuse, indicateurs clés, 7 derniers jours, solde, recharge |
+| **Coûts** (`couts.html`) | coût par jour en barres empilées ou en cumul (zoomable), repères : moyenne, projection 30 jours |
+| **Horaires** (`horaires.html`) | compte à rebours, carte horaire `jour × heure UTC`, créneaux les plus coûteux |
+| **Répartition** (`repartition.html`) | donut par profil, barres par application, sessions récentes |
+| **Demandes** (`demandes.html`) | file d'attente des demandes différées et demandes déjà clôturées |
 
-La pastille de l'en-tête — comme l'onglet **Horaires** — affiche en permanence
-l'état tarifaire et le temps restant avant la bascule, sans avoir à changer de vue.
+Tout est présenté en cartes (aucun tableau à faire défiler latéralement) avec
+des cibles tactiles d'au moins 44 px et la gestion de l'encoche (`safe-area`).
+Le bandeau d'état tarifaire et le compte à rebours restent visibles en haut de
+chaque page ; le pied de page indique la version de l'interface, utile pour
+vérifier qu'un téléphone n'affiche pas une copie ancienne.
 
 ### Graphiques interactifs
 
@@ -135,15 +139,16 @@ Pour ajouter un projet : compléter les listes `profils` et `apps`, puis relance
 ## 7. Tests
 
 ```sh
-python3 -m pytest tests -q      # 89 tests
+python3 -m pytest tests -q      # 92 tests
 ```
 
 Ils couvrent les bornes des fenêtres tarifaires (week-ends, jours fériés,
 bascule), la grille de prix (remise creuse = moitié de la pleine, cache borné),
 l'attribution des sessions, la file d'attente, la collecte sur une base factice,
 l'installation (liens des commandes, manifeste et icônes de l'application
-installable) et l'interface mobile (cinq vues, barre d'onglets, gestes de zoom,
-redessin à la largeur de l'écran, cohérence du cache hors ligne).
+installable) et l'interface téléphone (une page par analyse, navigation par menu
+sans script, thème clair, gestes de zoom, redessin à la largeur de l'écran,
+cache hors ligne).
 
 ## 8. Limites connues
 
@@ -165,7 +170,8 @@ suivi-deepseek/
 ├── outils/            horaires.py, tarifs.py, sessions.py, differe.py, collecter.py, solde.py
 ├── bin/               deepseek-horaires, deepseek-differe, deepseek-collecter
 ├── data/              en-attente.json (file d'attente locale)
-├── docs/              index.html, style.css, app.js, data/suivi.json (publié)
+├── docs/              index.html, couts.html, horaires.html, repartition.html,
+│                      demandes.html (publié), style.css, app.js, data/suivi.json
 │                      manifest.webmanifest, sw.js, icone-*.png (application installable)
 ├── tests/             tests pytest
 └── .github/workflows/ pages.yml (tests, contrôle des secrets, déploiement Pages)

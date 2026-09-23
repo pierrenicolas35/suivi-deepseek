@@ -1,13 +1,17 @@
-/* Service worker « Suivi DeepSeek » : rend la page installable et consultable
-   hors ligne. Les statistiques (data/suivi.json) restent servies par le réseau
+/* Service worker « Suivi DeepSeek » : rend l'application installable et
+   consultable hors ligne (toutes les pages d'analyse). Les statistiques (data/suivi.json) restent servies par le réseau
    en priorité, pour ne jamais afficher des chiffres périmés sans le dire. */
 "use strict";
 
-const COQUILLE = "suivi-deepseek-coquille-v2"; // page, styles, script, icônes
-const DONNEES = "suivi-deepseek-donnees-v2"; // dernière copie des statistiques
+const COQUILLE = "suivi-deepseek-coquille-v3"; // page, styles, script, icônes
+const DONNEES = "suivi-deepseek-donnees-v3"; // dernière copie des statistiques
 const FICHIERS_COQUILLE = [
   "./",
   "./index.html",
+  "./couts.html",
+  "./horaires.html",
+  "./repartition.html",
+  "./demandes.html",
   "./style.css",
   "./app.js",
   "./manifest.webmanifest",

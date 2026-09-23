@@ -8,10 +8,10 @@
     />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="color-scheme" content="light" />
-    <title>Accueil — Suivi DeepSeek</title>
+    <title>Horaires — Suivi DeepSeek</title>
     <meta
       name="description"
-      content="Suivi de la consommation de l'API DeepSeek : état tarifaire en cours et indicateurs clés."
+      content="Suivi de la consommation de l'API DeepSeek : règle des heures pleines et creuses, carte horaire."
     />
     <link
       rel="icon"
@@ -28,15 +28,15 @@
     <meta name="apple-mobile-web-app-title" content="Suivi DeepSeek" />
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body data-page="index">
+  <body data-page="horaires">
     <!-- Menu : la case à cocher ouvre le panneau sans une ligne de script. -->
     <input type="checkbox" id="bascule-menu" class="bascule" aria-label="Ouvrir le menu" />
 
     <header class="entete">
       <label for="bascule-menu" class="bouton-menu" role="button" aria-label="Ouvrir le menu">☰</label>
       <div class="entete-titre">
-        <p class="fil">État tarifaire & indicateurs</p>
-        <h1>Accueil</h1>
+        <p class="fil">Heures pleines / creuses</p>
+        <h1>Horaires</h1>
       </div>
       <a class="bouton-icone" href="" aria-label="Actualiser les données">⟳</a>
     </header>
@@ -44,31 +44,41 @@
     <div id="pastille-horaire" class="pastille creuse">…</div>
 
     <main id="contenu">
-        <div id="bandeau" class="bandeau">Chargement des données…</div>
+        <div id="message-erreur" class="bandeau erreur" hidden></div>
 
-        <div id="cartes" class="grille-cartes"></div>
+        <div class="barre-titre">
+          <h2>Heures pleines / creuses</h2>
+        </div>
+
+        <div id="etat-horaires" class="panneau etat-horaires"></div>
 
         <div class="panneau">
           <div class="panneau-titre">
-            <h3>7 derniers jours</h3>
-            <a class="indication" href="couts.html">Détail ›</a>
+            <h3>
+              Carte horaire
+              <small>coût cumulé par jour de semaine et heure UTC</small>
+            </h3>
           </div>
-          <div id="mini-jours" class="mini-graphique"></div>
-          <div class="legende">
-            <span><i style="background: var(--pleine)"></i>Heures pleines</span>
-            <span><i style="background: var(--creuse)"></i>Heures creuses (−50 %)</span>
+          <div class="barre-graphique">
+            <span class="indication">Touchez une case pour le détail</span>
+            <div class="zoom-boutons" data-zoom="thermique">
+              <button type="button" data-zoom-action="moins" aria-label="Dézoomer">−</button>
+              <button type="button" data-zoom-action="plus" aria-label="Zoomer">+</button>
+              <button type="button" data-zoom-action="reset" aria-label="Afficher 24 heures">⤢</button>
+            </div>
           </div>
+          <div id="carte-thermique" class="graphique"></div>
+          <div id="detail-thermique" class="detail-graphique"></div>
+          <p class="aide">Les cases encadrées en orange sont facturées au tarif normal (heures pleines).</p>
         </div>
 
-        <a
-          id="lien-recharge"
-          class="bouton bouton-principal bouton-large"
-          href="https://platform.deepseek.com/top_up"
-          target="_blank"
-          rel="noopener"
-        >
-          Recharger le compte API
-        </a>
+        <div class="panneau">
+          <div class="panneau-titre">
+            <h3>Créneaux les plus coûteux</h3>
+            <span class="indication">cumul sur la période collectée</span>
+          </div>
+          <div id="creneaux" class="liste-creneaux"></div>
+        </div>
 
         <div class="pied">
           <div id="pied-regle"></div>
@@ -90,9 +100,9 @@
         <label for="bascule-menu" class="menu-fermer" role="button" aria-label="Fermer le menu">✕</label>
       </div>
       <ul class="menu-liste">
-<li><a href="index.html" aria-current="page"><span class="puce" aria-hidden="true">🧭</span><span class="libelle"><b>Accueil</b><span>état tarifaire &amp; indicateurs</span></span></a></li>
+<li><a href="index.html"><span class="puce" aria-hidden="true">🧭</span><span class="libelle"><b>Accueil</b><span>état tarifaire &amp; indicateurs</span></span></a></li>
 <li><a href="couts.html"><span class="puce" aria-hidden="true">💵</span><span class="libelle"><b>Coûts dans le temps</b><span>coût par jour, cumul, zoom</span></span></a></li>
-<li><a href="horaires.html"><span class="puce" aria-hidden="true">🕒</span><span class="libelle"><b>Heures pleines / creuses</b><span>carte horaire, créneaux coûteux</span></span></a></li>
+<li><a href="horaires.html" aria-current="page"><span class="puce" aria-hidden="true">🕒</span><span class="libelle"><b>Heures pleines / creuses</b><span>carte horaire, créneaux coûteux</span></span></a></li>
 <li><a href="repartition.html"><span class="puce" aria-hidden="true">📊</span><span class="libelle"><b>Répartition</b><span>profils, applications, sessions</span></span></a></li>
 <li><a href="demandes.html"><span class="puce" aria-hidden="true">📥</span><span class="libelle"><b>Demandes différées</b><span>file d'attente &amp; historique</span></span> <span class="compte" id="badge-demandes" hidden></span></a></li>
       </ul>
