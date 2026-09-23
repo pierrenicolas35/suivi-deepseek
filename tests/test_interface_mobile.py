@@ -70,6 +70,34 @@ def test_graphiques_colores_depuis_la_feuille_de_style():
         assert variable in APPLICATION, f"{variable} non lue depuis le thème"
 
 
+def test_selecteur_barres_cumul_cable():
+    """Régression : le sélecteur doit écouter les clics, pas seulement s'afficher."""
+    assert "preparerSegments" in APPLICATION, "le sélecteur Barres/Cumul n'est pas câblé"
+    assert 'segment.getAttribute("data-mode")' in APPLICATION
+    assert 'data-mode="barres"' in PAGES_HTML["couts"]
+    assert 'data-mode="cumul"' in PAGES_HTML["couts"]
+
+
+def test_version_de_l_interface_coherente_entre_pages_et_script():
+    """Une page ancienne servie en cache est détectée et rechargée (pas de mélange)."""
+    version = re.search(r"^const VERSION = (\d+);", APPLICATION, re.M)
+    assert version, "la version de l'interface n'est pas déclarée dans app.js"
+    for page, html in PAGES_HTML.items():
+        assert f'data-version="{version.group(1)}"' in html, f"{page}.html n'annonce pas la version {version.group(1)}"
+        assert f"style.css?v={version.group(1)}" in html, f"{page}.html ne versionne pas sa feuille de style"
+        assert f"app.js?v={version.group(1)}" in html, f"{page}.html ne versionne pas son script"
+    assert "verifierVersionPage" in APPLICATION, "aucune détection de page périmée"
+
+
+def test_bouton_de_mise_a_jour_de_secours():
+    """Sur téléphone, un cache récalcitrant doit pouvoir être vidé sans outil externe."""
+    assert "forcerMiseAJour" in APPLICATION
+    assert "caches.delete" in APPLICATION, "le bouton ne vide pas les caches"
+    assert "unregister" in APPLICATION, "le bouton ne désinscrit pas le service worker"
+    for page, html in PAGES_HTML.items():
+        assert 'id="bouton-maj"' in html, f"{page}.html n'a pas de bouton de mise à jour"
+
+
 def test_graphiques_zoomables_au_doigt_et_a_la_souris():
     for geste in ("pointerdown", "pointermove", "pointerup", "wheel", "dblclick"):
         assert geste in APPLICATION, f"geste « {geste} » non géré"
@@ -106,7 +134,13 @@ def test_toutes_les_pages_sont_disponibles_hors_ligne():
 
 
 def test_cache_des_donnees_partage_entre_page_et_service_worker():
-    version_application = re.search(r'caches\.open\("(suivi-deepseek-donnees-v\d+)"\)', APPLICATION)
-    assert version_application, "la page n'enregistre pas la copie hors ligne des données"
-    assert f'"{version_application.group(1)}"' in WORKER, "page et service worker utilisent deux caches différents"
-    assert "suivi-deepseek-coquille-v3" in WORKER
+    nom = re.search(r'const CACHE_DONNEES = "([^"]+)"', APPLICATION)
+    assert nom, "la page ne nomme pas le cache de la copie hors ligne"
+    assert f'"{nom.group(1)}"' in WORKER, "page et service worker utilisent deux caches différents"
+
+
+def test_les_anciens_caches_sont_purges_a_la_mise_a_jour():
+    """Cœur du problème rencontré : une copie ancienne ne doit jamais resservir."""
+    assert 'cle.startsWith("suivi-deepseek-")' in WORKER, "la purge ne couvre pas tous les caches de l'application"
+    assert "caches.delete(cle)" in WORKER
+    assert "caches.open(CACHE_DONNEES)" in APPLICATION, "la copie hors ligne n'est pas lue dans le cache en vigueur"

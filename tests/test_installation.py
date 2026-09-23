@@ -153,5 +153,5 @@ def test_fichiers_du_service_worker_reellement_publies():
 
 def test_page_utilisable_hors_ligne_avec_repli_sur_la_copie_locale():
     application = (DOCS / "app.js").read_text(encoding="utf-8")
-    assert "caches.match(\"data/suivi.json\")" in application
+    assert 'match("data/suivi.json")' in application, "pas de repli sur la copie locale des données"
     assert "hors ligne" in application

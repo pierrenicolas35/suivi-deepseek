@@ -14,7 +14,9 @@
 
 /* --------------------------------------------------------------- constantes */
 
-const VERSION = "v3 · menu clair";
+const VERSION = 4; // doit correspondre à data-version des pages (test dédié)
+const CACHE_DONNEES = "suivi-deepseek-donnees-v4"; // doit correspondre à sw.js (test dédié)
+const LIBELLE_VERSION = "v4 · menu clair";
 const FENETRES_PLEINES = [
   [1, 4],
   [6, 10],
@@ -1252,12 +1254,80 @@ function rendreTout() {
       (copieHorsLigne || navigator.onLine === false ? " · hors ligne : dernière copie connue" : "");
   }
   const piedVersion = $id("pied-version");
-  if (piedVersion) piedVersion.textContent = `Interface ${VERSION}.`;
+  if (piedVersion) piedVersion.textContent = `Interface ${LIBELLE_VERSION}.`;
+  const piedVersionMenu = $id("pied-version-menu");
+  if (piedVersionMenu) piedVersionMenu.textContent = LIBELLE_VERSION;
+}
+
+/* --------------------------------------------------------------- sélecteurs */
+
+function preparerSegments() {
+  const segments = document.querySelectorAll(".segment");
+  if (!segments.length) return;
+  segments.forEach((segment) => {
+    segment.addEventListener("click", () => {
+      modeCouts = segment.getAttribute("data-mode") === "cumul" ? "cumul" : "barres";
+      segments.forEach((autre) => {
+        const actif = autre === segment;
+        autre.classList.toggle("actif", actif);
+        autre.setAttribute("aria-pressed", actif ? "true" : "false");
+      });
+      if (zoomJours) zoomJours.rafraichir();
+      else if (donnees) rendreTout();
+    });
+  });
+}
+
+/* --------------------------------------------- version et mise à jour forcée */
+
+/**
+ * Une page ancienne servie depuis le cache d'un téléphone (avec la nouvelle
+ * feuille de style) donne une interface incohérente : on la détecte et on
+ * recharge une fois en forçant le réseau.
+ */
+function verifierVersionPage() {
+  const versionPage = document.body.dataset.version;
+  if (versionPage === String(VERSION)) return false;
+  const marque = "suivi-deepseek-maj";
+  try {
+    if (sessionStorage.getItem(marque) === "1") return false;
+    sessionStorage.setItem(marque, "1");
+  } catch (erreur) {
+    /* stockage indisponible : on tente quand même le rechargement */
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("v", `${VERSION}-${Date.now()}`);
+  window.location.replace(url.toString());
+  return true;
+}
+
+/** Bouton d'urgence : vide les caches de l'application puis recharge. */
+async function forcerMiseAJour(bouton) {
+  if (bouton) bouton.textContent = "Mise à jour en cours…";
+  try {
+    if ("caches" in window) {
+      const cles = await caches.keys();
+      await Promise.all(
+        cles.filter((cle) => cle.indexOf("suivi-deepseek-") === 0).map((cle) => caches.delete(cle))
+      );
+    }
+    if ("serviceWorker" in navigator) {
+      const enregistrements = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(enregistrements.map((enregistrement) => enregistrement.unregister()));
+    }
+  } catch (erreur) {
+    /* on recharge quand même */
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("v", `${VERSION}-${Date.now()}`);
+  window.location.replace(url.toString());
 }
 
 /* -------------------------------------------------------------------- menu */
 
 function preparerMenu() {
+  const boutonMaj = $id("bouton-maj");
+  if (boutonMaj) boutonMaj.addEventListener("click", () => forcerMiseAJour(boutonMaj));
   const bascule = $id("bascule-menu");
   if (!bascule) return;
   // Après un retour arrière, le navigateur peut restaurer la page avec le menu
@@ -1341,7 +1411,7 @@ function preparerInstallation() {
 async function memoriserDonnees(reponse) {
   if (!("caches" in window)) return;
   try {
-    const cache = await caches.open("suivi-deepseek-donnees-v3");
+    const cache = await caches.open(CACHE_DONNEES);
     await cache.put("data/suivi.json", reponse.clone());
   } catch (erreur) {
     /* stockage indisponible : la page reste utilisable en ligne */
@@ -1351,7 +1421,10 @@ async function memoriserDonnees(reponse) {
 async function donneesEnCache() {
   if (!("caches" in window)) return null;
   try {
-    const reponse = await caches.match("data/suivi.json");
+    // Ciblé sur le cache en vigueur : une copie plus ancienne ne doit jamais
+    // être resservie.
+    const cache = await caches.open(CACHE_DONNEES);
+    const reponse = await cache.match("data/suivi.json");
     return reponse ? await reponse.json() : null;
   } catch (erreur) {
     return null;
@@ -1427,7 +1500,9 @@ function preparerRedimensionnement() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (verifierVersionPage()) return;
   preparerMenu();
+  preparerSegments();
   preparerInstallation();
   preparerRedimensionnement();
   actualiser().then(() => {

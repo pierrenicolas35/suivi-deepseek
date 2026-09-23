@@ -26,9 +26,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Suivi DeepSeek" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=4" />
   </head>
-  <body data-page="repartition">
+  <body data-page="repartition" data-version="4">
     <!-- Menu : la case à cocher ouvre le panneau sans une ligne de script. -->
     <input type="checkbox" id="bascule-menu" class="bascule" aria-label="Ouvrir le menu" />
 
@@ -115,9 +115,13 @@
         >
           Recharger le compte API
         </a>
+        <div class="menu-version">
+          <span class="indication">Interface <span id="pied-version-menu">…</span></span>
+          <button id="bouton-maj" class="lien-bouton" type="button">Forcer la mise à jour</button>
+        </div>
       </div>
     </nav>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4"></script>
   </body>
 </html>

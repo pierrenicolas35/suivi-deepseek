@@ -3,8 +3,8 @@
    en priorité, pour ne jamais afficher des chiffres périmés sans le dire. */
 "use strict";
 
-const COQUILLE = "suivi-deepseek-coquille-v3"; // page, styles, script, icônes
-const DONNEES = "suivi-deepseek-donnees-v3"; // dernière copie des statistiques
+const COQUILLE = "suivi-deepseek-coquille-v4"; // page, styles, script, icônes
+const DONNEES = "suivi-deepseek-donnees-v4"; // dernière copie des statistiques
 const FICHIERS_COQUILLE = [
   "./",
   "./index.html",
@@ -34,8 +34,11 @@ self.addEventListener("activate", (evenement) => {
       .keys()
       .then((cles) =>
         Promise.all(
+          // Tout cache de l'application qui n'est plus celui en vigueur est
+          // supprimé : sans cela, une copie ancienne des données pouvait
+          // resservir après une mise à jour.
           cles
-            .filter((cle) => cle.startsWith("suivi-deepseek-coquille-") && cle !== COQUILLE)
+            .filter((cle) => cle.startsWith("suivi-deepseek-") && cle !== COQUILLE && cle !== DONNEES)
             .map((cle) => caches.delete(cle))
         )
       )
